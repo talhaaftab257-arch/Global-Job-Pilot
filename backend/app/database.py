@@ -125,49 +125,52 @@ def init_sqlite():
 
 init_sqlite()
 
+def get_supabase_headers():
+    if not settings.supabase_url or not settings.supabase_service_role_key:
+        return None
+    return {
+        "apikey": settings.supabase_service_role_key,
+        "Authorization": f"Bearer {settings.supabase_service_role_key}",
+        "Content-Type": "application/json"
+    }
+
 def get_db_client():
     if not settings.supabase_url or not settings.supabase_service_role_key:
         return None
-    try:
-        from supabase import create_client
-        return create_client(settings.supabase_url, settings.supabase_service_role_key)
-    except Exception as exc:
-        log.warning(f"Could not initialize Supabase client: {exc}")
-        return None
+    return {"url": f"{settings.supabase_url.rstrip('/')}/rest/v1", "headers": get_supabase_headers()}
 
 def save_job_supabase(client, source_type: str, board: str, job: dict) -> bool:
+    headers = get_supabase_headers()
+    if not headers:
+        return False
+    import httpx
+    url = f"{settings.supabase_url.rstrip('/')}/rest/v1"
     roots = {
         "greenhouse": "https://boards.greenhouse.io/",
         "lever": "https://jobs.lever.co/",
         "ashby": "https://jobs.ashbyhq.com/"
     }
-    source = client.table("job_sources").upsert({
+    # Upsert source
+    source_payload = {
         "source_type": source_type,
         "board_identifier": board,
         "name": f"{source_type.title()} · {board}",
         "source_url": roots.get(source_type, "") + board,
         "active": True
-    }, on_conflict="source_type,board_identifier").execute()
+    }
+    try:
+        httpx.post(f"{url}/job_sources", headers={**headers, "Prefer": "resolution=merge-duplicates"}, json=source_payload, timeout=10)
+    except Exception:
+        pass
 
-    if source.data:
-        job["source_id"] = source.data[0]["id"]
-
-    # Match by canonical URL first, then source_name + external_id
-    existing = client.table("jobs").select("id").eq("canonical_url", job["canonical_url"]).limit(1).execute().data
-    if not existing:
-        existing = client.table("jobs").select("id").eq("source_name", job.get("source_name")).eq("external_id", job["external_id"]).limit(1).execute().data
-
-    # Supabase expects json arrays for text[]
     sb_job = dict(job)
-    if "remote_type" in sb_job:
-        sb_job.pop("remote_type", None)
+    sb_job.pop("remote_type", None)
 
-    if existing:
-        client.table("jobs").update(sb_job).eq("id", existing[0]["id"]).execute()
+    try:
+        r = httpx.post(f"{url}/jobs", headers={**headers, "Prefer": "resolution=merge-duplicates"}, json=sb_job, timeout=10)
+        return r.status_code in (200, 201)
+    except Exception:
         return False
-
-    client.table("jobs").insert(sb_job).execute()
-    return True
 
 def save_job_sqlite(source_type: str, board: str, job: dict) -> bool:
     now = datetime.now(timezone.utc).isoformat()
@@ -271,16 +274,12 @@ def save_job_sqlite(source_type: str, board: str, job: dict) -> bool:
             return True
 
 def save_job(db, source_type: str, board: str, job: dict) -> bool:
-    """Save to Supabase if accessible, and always mirror into local SQLite storage."""
-    is_new = False
-    if db:
-        try:
-            is_new = save_job_supabase(db, source_type, board, job)
-        except Exception as exc:
-            log.warning(f"Supabase save failed ({exc}); persisting locally to SQLite")
-            is_new = save_job_sqlite(source_type, board, job)
-    else:
-        is_new = save_job_sqlite(source_type, board, job)
+    """Save to local SQLite storage and mirror to Supabase PostgreSQL."""
+    is_new = save_job_sqlite(source_type, board, job)
+    try:
+        save_job_supabase(db, source_type, board, job)
+    except Exception:
+        pass
     return is_new
 
 def list_jobs_sqlite(limit=100, offset=0, sponsorship=None, country=None, query=None, min_score=None, sort="match") -> dict:
