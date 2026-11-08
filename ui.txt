@@ -1,0 +1,711 @@
+# GLOBAL AI JOBPILOT — PIXEL-PERFECT UI/UX IMPLEMENTATION PROMPT
+
+## YOUR ROLE
+
+Act as a Senior UI/UX Designer, Product Designer, React Frontend Architect, and Design Systems Engineer.
+
+I am providing you with a reference image containing the complete UI/UX design of my application, Global AI JobPilot.
+
+Your task is to recreate this design as a fully functional, responsive React application.
+
+**CRITICAL REQUIREMENT: REPLICATE THE PROVIDED REFERENCE IMAGE AS CLOSELY AS POSSIBLE.**
+
+Do not create a different design. Do not simplify the interface. Do not replace the design with a generic admin dashboard. Do not change the color palette, sidebar, card layouts, navigation, typography, visual hierarchy, or overall structure without a compelling technical reason.
+
+Treat the reference image as the primary source of truth.
+
+## 1. PROJECT OVERVIEW
+
+Application name: Global AI JobPilot
+
+Tagline: Find. Apply. Relocate.
+
+Purpose:
+
+A worldwide AI/ML job discovery platform that finds international employment opportunities, identifies visa sponsorship and relocation support, calculates AI-powered candidate matching scores, tracks applications, and sends daily job notifications.
+
+The application is designed for AI engineers and technology professionals applying internationally from Pakistan.
+
+## 2. DESIGN REFERENCE
+
+Use the uploaded reference image as the exact visual guide.
+
+The image contains nine screens:
+
+1. Dashboard
+2. All Jobs
+3. Job Details
+4. Sponsorship Tracker
+5. Countries
+6. Applications
+7. Sources
+8. Preferences
+9. Settings
+
+Reproduce each screen individually, preserving the visual style and consistent application layout.
+
+Before writing code:
+- Inspect the reference image carefully.
+- Identify the exact layout structure.
+- Analyze sidebar dimensions and spacing.
+- Identify card proportions and grid arrangements.
+- Analyze typography, colors, gradients, borders, shadows, and icons.
+- Identify navigation and interactive elements.
+- Create a reusable design system.
+
+If the image is available in the project directory, inspect it directly. Otherwise, ask me to provide it.
+
+## 3. TECHNOLOGY STACK
+
+Use:
+
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+- Lucide React icons
+- React Router
+- Recharts
+- Supabase JavaScript client
+- Framer Motion where appropriate
+
+Use clean, reusable, modular components.
+
+Avoid unnecessary dependencies.
+
+## 4. EXACT VISUAL DESIGN SYSTEM
+
+### Overall appearance
+
+Create a premium international SaaS dashboard.
+
+Use a combination of:
+- Deep navy sidebar
+- White and light-gray workspace
+- Dark blue text
+- Teal and emerald accents
+- Subtle blue gradients
+- Rounded cards
+- Soft shadows
+- Fine borders
+- Clean typography
+
+### Color palette
+
+Sidebar:
+- Deep navy: #07152E
+- Secondary navy: #0B1C39
+- Active navigation: #087D88
+
+Primary:
+- Teal: #00BFA5
+- Emerald: #00C389
+- Blue: #2388F5
+
+Workspace:
+- Background: #F4F7FC
+- Card background: #FFFFFF
+- Primary text: #101B3D
+- Secondary text: #60708F
+- Border: #E5EAF3
+
+Sponsorship:
+- Confirmed: green
+- Likely: amber
+- Unverified: gray/blue
+- Unavailable: red
+
+Keep these colors consistent across every page.
+
+### Typography
+
+Use Inter or a similar modern sans-serif font.
+
+Use:
+- Bold page titles.
+- Medium section headings.
+- Readable body text.
+- Small muted metadata.
+- Consistent typography hierarchy.
+
+### Sidebar
+
+Create a persistent dark navy sidebar with:
+
+- Global AI JobPilot logo.
+- Tagline: Find. Apply. Relocate.
+- Dashboard
+- All Jobs
+- Sponsorship Tracker
+- Countries
+- Applications
+- Sources
+- Preferences
+- Settings
+
+Bottom sidebar:
+- Next Run status.
+- Current schedule.
+- Run Now button.
+- Candidate profile.
+- Avatar and dropdown.
+
+Highlight the active navigation item with a teal background.
+
+Sidebar should remain consistent across all nine pages.
+
+### Top navigation
+
+Include:
+- Global job search field.
+- Search placeholder: "Search jobs, countries, or skills..."
+- Notification bell.
+- Notification indicator.
+- Upgrade button if appropriate.
+
+Keep the same top navigation structure across pages.
+
+## 5. SCREEN 1 — DASHBOARD
+
+Reproduce the dashboard shown in the reference image.
+
+### Hero section
+
+Create a wide banner with:
+- Dark navy and blue gradient.
+- Global digital globe illustration.
+- Headline: "Your Global AI Career, One Smart Platform"
+- Subtitle: "Discover visa sponsorship jobs worldwide with intelligent matching."
+- Explore Latest Opportunities button.
+- Feature checklist:
+  - Visa Sponsorship
+  - Worldwide Jobs
+  - AI-Powered Matching
+  - Daily Updates
+
+### Statistics cards
+
+Create five cards:
+
+1. Total Jobs Found
+2. Matching Jobs
+3. Sponsorship Jobs
+4. Average Match Score
+5. Countries
+
+Each card includes:
+- Icon.
+- Main statistic.
+- Percentage change.
+- Small trend chart.
+
+### Top Jobs for You
+
+Create a structured job list with:
+- Company logo.
+- Job title.
+- Company name.
+- Country and city.
+- Skills tags.
+- Sponsorship badge.
+- Match score.
+- Apply Now button.
+
+### Right-side analytics
+
+Job Distribution:
+- Doughnut chart.
+- Europe.
+- North America.
+- Asia-Pacific.
+- Middle East.
+- Other.
+
+Sponsorship Status:
+- Confirmed.
+- Likely.
+- Unverified.
+- Visual progress indicators.
+
+### Bottom sections
+
+Recent Activity:
+- Jobs collected.
+- Daily search completed.
+- Email report sent.
+
+Job Search at a Glance:
+- Search performance trend.
+- Opportunities discovered.
+
+Promotional card:
+- "Ready for your next opportunity?"
+- Update Preferences button.
+
+## 6. SCREEN 2 — ALL JOBS
+
+Create a worldwide job discovery page.
+
+Page heading:
+"Discover Worldwide AI Jobs"
+
+Subtitle:
+"Find the best opportunities with visa sponsorship worldwide."
+
+Include:
+- Search bar.
+- Advanced filters.
+- Sort by match score.
+- Sponsorship filters.
+- Country filters.
+- Remote filters.
+- Date posted filters.
+- Salary filters.
+- Minimum match score.
+
+Filter categories:
+- All
+- Confirmed Sponsorship
+- Likely Sponsorship
+- Unverified
+- Remote
+- Europe
+- USA
+- More
+
+Each job card should show:
+- Company logo.
+- Job title.
+- Company.
+- Location.
+- Required skills.
+- Experience requirement.
+- Sponsorship status.
+- Salary if published.
+- Match score.
+- View Details action.
+
+Use a clean list layout consistent with the reference image.
+
+## 7. SCREEN 3 — JOB DETAILS
+
+Create a dedicated job details page.
+
+Include:
+- Breadcrumb navigation.
+- Company logo.
+- Job title.
+- Company.
+- Location.
+- Match score.
+- Salary.
+- Experience.
+- Employment type.
+- Remote status.
+- Posted date.
+
+Create tabs:
+- Overview
+- Requirements
+- Benefits
+- About Company
+
+Include:
+- Full job description.
+- Required technical skills.
+- Experience requirements.
+- Sponsorship availability.
+- Relocation support.
+- Work permit assistance.
+- Sponsorship evidence and original source.
+- Why You're a Great Fit section.
+
+Actions:
+- Apply on Employer Website.
+- Save Job.
+- Save for Later.
+- Share Job.
+
+Never fabricate sponsorship information.
+
+## 8. SCREEN 4 — SPONSORSHIP TRACKER
+
+Create a sponsorship intelligence dashboard.
+
+Four summary cards:
+- Confirmed
+- Likely
+- Unverified
+- Unavailable
+
+Include:
+- Sponsorship distribution chart.
+- Status breakdown.
+- Country-wise sponsorship information.
+- Employer verification information.
+- Sponsorship evidence.
+- Last verification date.
+
+Provide filters for:
+- Country.
+- Company.
+- Job title.
+- Sponsorship status.
+
+Every confirmed status must be supported by actual vacancy-specific evidence.
+
+## 9. SCREEN 5 — COUNTRIES
+
+Create a worldwide opportunity analytics page.
+
+Include:
+- Interactive world map.
+- Country-wise job distribution.
+- Top hiring countries.
+- Sponsorship statistics.
+- Average match scores.
+- Opportunity counts.
+- Remote opportunity counts.
+
+Country details should include:
+- Country name.
+- Total jobs.
+- Confirmed sponsorship jobs.
+- Average salary where available.
+- Top AI/ML job categories.
+- Direct job listings.
+
+Use real geographic data when available.
+
+## 10. SCREEN 6 — APPLICATIONS
+
+Create an application tracking dashboard.
+
+Tabs:
+- All
+- Applied
+- Interview
+- Offer
+- Rejected
+
+Each record includes:
+- Company logo.
+- Job title.
+- Company.
+- Location.
+- Application date.
+- Current status.
+- Match score.
+- View Details action.
+
+Allow:
+- Adding an application.
+- Updating status.
+- Adding notes.
+- Recording interview dates.
+- Setting follow-up reminders.
+- Searching and filtering.
+
+Use a polished list/table design.
+
+## 11. SCREEN 7 — SOURCES
+
+Create a job source management page.
+
+Show source cards for:
+- LinkedIn
+- Indeed
+- Greenhouse
+- Lever
+- Ashby
+- EURES
+- Relocate.me
+- Glassdoor
+- SmartRecruiters
+- Other configured employer career feeds.
+
+Each source card should display:
+- Logo.
+- Source name.
+- Connection status.
+- Last checked time.
+- Number of jobs collected.
+- Enable/disable switch.
+- View Source action.
+
+Include:
+- Add Source button.
+- Source configuration.
+- Collection history.
+- Error information.
+- Refresh source action.
+
+Important: Display only sources that are actually configured. Do not imply that an external platform is connected when it is not.
+
+## 12. SCREEN 8 — PREFERENCES
+
+Create a job search preference management page.
+
+Sections:
+
+### Job titles and skills
+
+Allow selecting:
+- AI Engineer
+- ML Engineer
+- Agentic AI Engineer
+- LLM Engineer
+- RAG Engineer
+- AI Automation Engineer
+- Full-Stack AI Engineer
+- Python AI Engineer
+- Forward Deployed AI Engineer
+
+Allow adding custom skills and job titles.
+
+### Target regions
+
+- Europe
+- North America
+- Asia-Pacific
+- Middle East
+- Africa
+- Latin America
+
+Allow individual country selection.
+
+### Matching preferences
+
+- Minimum match score slider.
+- Sponsorship priority.
+- Relocation preference.
+- Remote job preference.
+- Experience level.
+- Salary expectations.
+
+### Notifications
+
+- Telegram notifications.
+- Email reports.
+- High-priority alerts.
+- Daily job limit.
+
+Default daily limit: 30.
+
+Add Save Changes button.
+
+## 13. SCREEN 9 — SETTINGS
+
+Create a complete account settings interface.
+
+Sections:
+- Candidate Profile
+- Notifications
+- AI Configuration
+- Security
+- About
+
+Candidate profile:
+- Talha Aftab
+- AI Engineer
+- Pakistan
+- Portfolio URL
+- Technical skills
+- Professional information
+
+AI configuration:
+- OpenAI API key configuration.
+- Claude API key configuration.
+- Gemini API key configuration.
+- Provider status.
+- Optional AI mode.
+
+Security:
+- Account security.
+- Session management.
+- Sign-out.
+
+Show system health and last synchronization information.
+
+Never display actual API secrets.
+
+## 14. RESPONSIVE DESIGN
+
+The design must support:
+
+Desktop:
+- Full sidebar.
+- Full-width workspace.
+- Multi-column dashboard.
+
+Tablet:
+- Collapsible sidebar.
+- Responsive grids.
+- Adapted charts.
+
+Mobile:
+- Compact top navigation.
+- Mobile navigation drawer.
+- Single-column cards.
+- Horizontally scrollable filters where appropriate.
+- Readable job cards.
+- Touch-friendly buttons.
+
+Do not simply shrink desktop screens. Adapt layouts appropriately.
+
+## 15. FUNCTIONAL INTERACTIONS
+
+All visible interactive elements must work.
+
+Implement:
+- Sidebar navigation.
+- Search.
+- Job filters.
+- Sorting.
+- Job details navigation.
+- Sponsorship filters.
+- Save job.
+- Application tracking.
+- Preference updates.
+- Settings navigation.
+- Notifications dropdown.
+- Run Now interaction.
+- Add source interface.
+- Responsive menu.
+
+Use shared React state or Supabase persistence where appropriate.
+
+Avoid inert buttons.
+
+Use loading, empty, error, and success states.
+
+## 16. DATA INTEGRATION
+
+Connect the UI to Supabase.
+
+Use existing database tables where available:
+
+- jobs
+- job_sources
+- job_runs
+- job_preferences
+- applications
+- notifications
+- profiles
+
+Inspect the existing schema before creating or changing tables.
+
+Use real database records whenever available.
+
+If the database is empty, show a well-designed empty state.
+
+Do not insert fabricated production jobs.
+
+If demo data is needed for visual development, isolate it in a separate development-only fixture and clearly label it.
+
+Implement pagination and efficient queries.
+
+Never expose the Supabase service-role key in the frontend.
+
+## 17. DESIGN QUALITY REQUIREMENTS
+
+The final application should visually resemble the supplied design as closely as possible.
+
+Pay particular attention to:
+
+- Sidebar width and proportions.
+- Main content spacing.
+- Card dimensions.
+- Hero banner.
+- Icon placement.
+- Chart proportions.
+- Job row spacing.
+- Button dimensions.
+- Border radius.
+- Shadows.
+- Font weights.
+- Color contrast.
+- Consistency across screens.
+
+Do not use excessive gradients.
+
+Do not introduce random colors.
+
+Do not use emoji instead of professional icons except where the reference intentionally uses them.
+
+Use consistent icon sizes and spacing.
+
+Keep the same sidebar and header on all pages.
+
+Avoid unnecessary animations.
+
+## 18. IMPLEMENTATION WORKFLOW
+
+PHASE 1:
+Inspect the project and reference image. Identify the existing stack and create the design system.
+
+PHASE 2:
+Build the reusable layout:
+- Sidebar.
+- Header.
+- Main content container.
+- Buttons.
+- Cards.
+- Badges.
+- Inputs.
+- Navigation.
+
+PHASE 3:
+Implement the nine pages individually.
+
+PHASE 4:
+Implement charts, filters, navigation, responsive behavior and interactions.
+
+PHASE 5:
+Connect Supabase.
+
+PHASE 6:
+Test all routes, controls, responsive layouts and loading states.
+
+PHASE 7:
+Compare screenshots against the supplied reference and fix visual differences.
+
+Maintain IMPLEMENTATION_STATUS.md throughout development.
+
+## 19. VISUAL QUALITY CHECK
+
+After implementation:
+
+1. Run the application locally.
+2. Capture screenshots of all nine pages.
+3. Compare each page with the reference image.
+4. Correct layout differences.
+5. Verify desktop at 1536 × 1024.
+6. Verify tablet and mobile breakpoints.
+7. Check console errors.
+8. Verify navigation and all interactive controls.
+9. Verify real Supabase integration.
+10. Confirm no fabricated live data appears.
+
+Do not consider the UI complete merely because the pages render.
+
+## 20. FINAL INSTRUCTION
+
+Build all nine screens using the exact visual direction of the supplied Global AI JobPilot reference.
+
+**Do not redesign the reference. Recreate it.**
+
+Prioritize visual accuracy, consistency, functionality, responsiveness, and maintainable code.
+
+Start by inspecting the repository and the supplied reference image. Then implement the design system and complete the nine screens sequentially.
+
+Do not stop after generating a plan. Write the actual code, run the application, test it, and fix the issues.
+
+At the end, provide:
+- Completed pages.
+- Components created.
+- Files changed.
+- Features implemented.
+- Test results.
+- Instructions to run locally.
+- Remaining tasks, if any.

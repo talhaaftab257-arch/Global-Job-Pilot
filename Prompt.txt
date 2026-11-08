@@ -1,0 +1,1001 @@
+# MASTER DEVELOPMENT PROMPT — GLOBAL AI JOBPILOT
+
+## 1. ROLE AND OBJECTIVE
+
+Act as a Senior Full-Stack AI Engineer, Software Architect, Python Backend Developer, Automation Engineer, Database Engineer, and UI/UX Designer.
+
+Your task is to design, develop, test, and prepare for deployment a complete application named:
+
+**Global AI JobPilot — Worldwide AI Jobs & Visa Sponsorship Intelligence Platform**
+
+This must be a real, functional, end-to-end application, not a prototype, static dashboard, or UI-only demonstration.
+
+The platform should automatically discover worldwide job opportunities matching my technical expertise, identify genuine visa sponsorship and relocation opportunities, calculate job compatibility scores, eliminate duplicates, store results, and send daily job reports through Telegram and Email.
+
+Work autonomously through the project. Inspect existing files before modifying anything. Make sensible technical decisions, implement the application in stages, run tests, and document all setup instructions.
+
+Do not stop after creating a plan or frontend mockup. Build the working system.
+
+---
+
+## 2. CANDIDATE PROFILE
+
+Use this profile as the default candidate configuration.
+
+**Candidate location:** Rawalpindi, Pakistan  
+**Nationality:** Pakistani  
+**Current position:** Data Scientist Lead  
+**Current salary:** PKR 180,000/month  
+**Availability:** Immediate, subject to confirmation  
+**Relocation:** Interested in international relocation  
+**Work authorization:** Do not assume existing foreign work authorization. Candidate requires employer-sponsored work authorization where applicable.
+
+### Professional positioning
+
+Target AI Engineer, Applied AI Engineer, Agentic AI Engineer, LLM Engineer, Machine Learning Engineer, AI Automation Engineer, and Full-Stack AI Engineer opportunities.
+
+Do not position the candidate primarily as a Data Analyst.
+
+### Technical expertise
+
+- Python
+- FastAPI
+- REST APIs
+- LangChain
+- LangGraph
+- OpenAI APIs
+- Anthropic Claude
+- Google Gemini
+- Large Language Models
+- Retrieval-Augmented Generation (RAG)
+- Vector databases
+- Embeddings
+- Multi-agent architectures
+- AI agents and automation workflows
+- Machine Learning
+- Deep Learning
+- TensorFlow
+- PyTorch
+- Scikit-learn
+- Hugging Face
+- Docker
+- PostgreSQL
+- Supabase
+- SQL
+- Cloud deployment
+- React
+- Vite
+- Frontend and backend integration
+- n8n automation
+
+### Project experience to consider
+
+1. Autonomous AI Project Management / TPM Agent.
+2. Autonomous AI Job Search Application.
+3. Multi-agent AI applications.
+4. AI email assistant and business workflow automation.
+5. Machine learning model development and deployment.
+6. AI applications integrating frontend, backend, APIs, and agentic workflows.
+
+Portfolio:
+https://talha-portfolio-ten.vercel.app
+
+Autonomous TPM Agent:
+https://apex-tpm-agent.vercel.app
+
+Do not invent additional experience, certifications, degrees, achievements, or employment history.
+
+---
+
+## 3. MAIN OBJECTIVES
+
+The application must:
+
+1. Search worldwide job opportunities.
+2. Prioritize jobs suitable for candidates applying from Pakistan.
+3. Identify vacancies that explicitly offer visa sponsorship.
+4. Identify relocation assistance and work-permit support.
+5. Discover employers that recruit international AI/ML talent.
+6. Match jobs against my technical profile.
+7. Prioritize recently published vacancies.
+8. Save all relevant jobs in Supabase.
+9. Prevent duplicate listings.
+10. Send a daily report containing a maximum of 30 selected jobs.
+11. Provide direct employer application links.
+12. Maintain job application tracking.
+13. Provide a searchable and filterable dashboard.
+
+Search should include both sponsorship jobs and potentially suitable international vacancies where sponsorship is unclear, but clearly separate these categories.
+
+---
+
+## 4. GLOBAL JOB SEARCH COVERAGE
+
+Search all major employment regions.
+
+### Europe
+- United Kingdom
+- Germany
+- Netherlands
+- Ireland
+- France
+- Sweden
+- Norway
+- Denmark
+- Finland
+- Switzerland
+- Austria
+- Belgium
+- Spain
+- Portugal
+- Poland
+- Czech Republic
+- Estonia
+- Luxembourg
+- Other European countries
+
+### North America
+- United States
+- Canada
+
+### Asia-Pacific
+- Australia
+- New Zealand
+- Singapore
+- Japan
+- South Korea
+- Malaysia
+- Hong Kong
+
+### Middle East
+- United Arab Emirates
+- Saudi Arabia
+- Qatar
+- Bahrain
+- Oman
+- Kuwait
+
+### Other regions
+- Africa
+- Latin America
+- Other countries offering international recruitment.
+
+Include remote international roles when the employer explicitly accepts applicants located in Pakistan or offers an appropriate employment arrangement.
+
+Do not assume that a remote vacancy permits international employment.
+
+---
+
+## 5. TARGET JOB TITLES
+
+Search using title variations and related keywords.
+
+### Primary roles
+
+- AI Engineer
+- Applied AI Engineer
+- Artificial Intelligence Engineer
+- Agentic AI Engineer
+- AI Agent Developer
+- AI Agents Engineer
+- LLM Engineer
+- Generative AI Engineer
+- RAG Engineer
+- Machine Learning Engineer
+- ML Engineer
+- AI Automation Engineer
+- Python AI Engineer
+- AI Backend Engineer
+- Full-Stack AI Engineer
+- AI Solutions Engineer
+- Forward Deployed AI Engineer
+- AI Software Engineer
+- Intelligent Automation Engineer
+- Multi-Agent Systems Engineer
+
+### Secondary roles
+
+- Data Scientist with ML/AI focus
+- MLOps Engineer
+- NLP Engineer
+- Computer Vision Engineer
+- AI Application Developer
+- Conversational AI Engineer
+- AI Integration Engineer
+- Python Developer with AI/LLM requirements
+
+Exclude ordinary Data Analyst, BI Analyst, reporting-only, and unrelated administrative vacancies unless they contain substantial AI engineering responsibilities.
+
+---
+
+## 6. AUTHORIZED JOB DATA SOURCES
+
+Use official APIs, public job feeds, employer career pages, permitted search integrations, and compliant alert mechanisms.
+
+Never bypass CAPTCHAs, authentication, access controls, robots restrictions, or platform terms.
+
+### Priority 1: Employer career pages and public ATS sources
+
+Implement collectors for:
+
+**Greenhouse**
+https://boards-api.greenhouse.io/
+
+**Lever**
+https://github.com/lever/postings-api
+
+**Ashby**
+https://developers.ashbyhq.com/docs/public-job-posting-api
+
+Also investigate authorized integrations for:
+- SmartRecruiters
+- Workday
+- Employer-hosted career pages
+- Other public ATS job feeds
+
+For Greenhouse, Lever, and Ashby, support configurable employer identifiers or company lists.
+
+Do not assume that a generic API endpoint automatically provides every employer's jobs. Discover and configure employer-specific board identifiers.
+
+### Priority 2: International job platforms
+
+Use permitted access methods for:
+
+- LinkedIn Jobs
+- Indeed
+- Wellfound
+- Glassdoor
+- Welcome to the Jungle
+- EURES
+- Relocate.me
+- Other international technology job boards.
+
+Where direct API access is unavailable, support user-provided alerts, authorized feeds, or compliant search integrations instead of unauthorized scraping.
+
+### Priority 3: Sponsorship-oriented discovery
+
+Investigate:
+- VisaJobsDaily
+- SponsorApply
+- Hiretik
+- AI Stack Jobs
+- EU AI Jobs
+- Other legitimate sponsorship-focused job directories.
+
+Treat these as discovery sources, not definitive proof of sponsorship.
+
+### Priority 4: Government and immigration verification
+
+Use official sources where relevant:
+
+UK:
+https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers
+
+Germany:
+https://www.make-it-in-germany.com/
+
+Europe:
+https://eures.europa.eu/
+
+Canada:
+https://www.jobbank.gc.ca/
+
+Australia:
+https://immi.homeaffairs.gov.au/
+
+USA:
+https://www.uscis.gov/
+
+New Zealand:
+https://www.immigration.govt.nz/
+
+Use official information to enrich sponsorship checks. Do not infer that a registered sponsor offers sponsorship for every vacancy.
+
+---
+
+## 7. VISA SPONSORSHIP INTELLIGENCE ENGINE
+
+This is one of the most important features.
+
+For every job, extract sponsorship and relocation information from the original employer job description and available employer documentation.
+
+Classify each job into:
+
+1. CONFIRMED
+   - Job explicitly states visa sponsorship is available.
+   - Employer confirms work permit sponsorship.
+   - Employer explicitly supports international relocation and required work authorization.
+
+2. LIKELY
+   - Employer has relevant sponsorship history or verified sponsor status.
+   - The specific vacancy does not explicitly confirm sponsorship.
+
+3. UNVERIFIED
+   - Sponsorship information is unavailable or unclear.
+
+4. UNAVAILABLE
+   - Job explicitly states no sponsorship.
+   - Vacancy requires existing work authorization that the candidate does not have.
+
+Extract evidence, not just labels.
+
+Required fields:
+- sponsorship_status
+- sponsorship_evidence
+- sponsorship_source_url
+- employer_sponsor_verified
+- relocation_support
+- relocation_evidence
+- work_authorization_requirement
+- candidate_eligibility
+- verification_timestamp
+
+Never claim that sponsorship is confirmed without vacancy-specific evidence.
+
+Display the original supporting sentence or a short factual excerpt.
+
+Distinguish:
+- Visa sponsorship
+- Work permit support
+- Relocation package
+- Existing work authorization required
+- Remote international employment
+- Contractor-only arrangements
+
+A company sponsor register is supporting evidence, not proof of sponsorship for the individual job.
+
+---
+
+## 8. AI JOB MATCHING ENGINE
+
+Build an intelligent scoring system with a maximum score of 100.
+
+Suggested weighting:
+
+| Factor | Weight |
+|---|---:|
+| Technical skills match | 30 |
+| Job responsibility match | 20 |
+| AI/ML relevance | 15 |
+| Experience and seniority compatibility | 10 |
+| Visa sponsorship and relocation | 15 |
+| Location and international eligibility | 5 |
+| Recency | 5 |
+
+Total: 100.
+
+Calculate:
+- Overall match score
+- Technical skills score
+- Role relevance score
+- Experience compatibility
+- Sponsorship score
+- Location eligibility score
+- Recency score
+
+Provide a short explanation for each match.
+
+Example:
+
+"Strong match: The role requires Python, FastAPI, LangGraph, LLM integrations, RAG, and multi-agent workflows. These align with the candidate's AI engineering projects. The employer explicitly mentions visa sponsorship."
+
+Do not award a high sponsorship score to an unverified vacancy.
+
+Do not fabricate missing salary, experience, sponsorship, or job requirements.
+
+### AI model integration
+
+Design an interchangeable AI provider interface.
+
+Potential providers:
+- OpenAI
+- Anthropic Claude
+- Google Gemini
+- Local rule-based fallback
+
+AI API keys must be optional.
+
+The platform must continue to collect and filter jobs even when no paid AI API key is configured.
+
+Use rule-based matching initially, then allow optional LLM-powered job description analysis.
+
+Control token consumption and avoid repeatedly analyzing the same job.
+
+---
+
+## 9. JOB FRESHNESS AND FILTERING
+
+Prioritize:
+- Jobs published within the last 24 hours.
+- Jobs published within the last 72 hours.
+- Jobs published within the last 7 days.
+
+Older jobs can be retained for historical tracking but should not dominate daily notifications.
+
+Default daily report:
+- Maximum 30 jobs.
+- Highest match scores first.
+- Confirmed sponsorship first.
+- Likely sponsorship second.
+- Unverified international opportunities afterward.
+
+Deduplicate using:
+- Source ID
+- External job ID
+- Canonical application URL
+- Company name
+- Job title
+- Location
+
+Handle missing external IDs using normalized hashes.
+
+Recheck existing vacancies periodically to detect:
+- Job closure
+- Changed descriptions
+- Changed sponsorship status
+- Changed application URLs
+
+---
+
+## 10. DATABASE — SUPABASE
+
+Use Supabase PostgreSQL.
+
+Create appropriate migrations rather than relying only on manual SQL.
+
+Required tables:
+
+### profiles
+Candidate profile, location, experience, skills, portfolio, preferences.
+
+### job_sources
+Source name, type, URL, identifiers, active status, last collection time.
+
+### jobs
+Job title, company, location, salary, description, original URL, posted date, source, sponsorship data, required skills, match scores, application status.
+
+### job_runs
+Execution logs, sources processed, jobs discovered, matched, saved, errors and execution duration.
+
+### job_preferences
+Target job titles, countries, regions, skills, sponsorship preferences, daily notification limit.
+
+### applications
+Saved jobs, applied date, application status, notes, follow-up dates.
+
+### notifications
+Telegram and email delivery history.
+
+### employer_sponsorship
+Employer name, country, official verification source, sponsor status, verification date and evidence.
+
+Requirements:
+- UUID primary keys.
+- Appropriate foreign keys.
+- Indexes for frequently queried columns.
+- Unique constraints and deduplication.
+- Timestamps.
+- JSONB raw source data.
+- Row Level Security.
+- Secure backend-only service role access.
+- No service role keys in frontend code.
+
+Keep all database changes version controlled in migration files.
+
+---
+
+## 11. BACKEND — PYTHON + FASTAPI
+
+Use a clean modular architecture.
+
+Suggested structure:
+
+global-ai-jobpilot/
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── api/
+│   │   │   ├── jobs.py
+│   │   │   ├── sources.py
+│   │   │   ├── analytics.py
+│   │   │   ├── applications.py
+│   │   │   └── preferences.py
+│   │   ├── collectors/
+│   │   │   ├── greenhouse.py
+│   │   │   ├── lever.py
+│   │   │   ├── ashby.py
+│   │   │   └── base.py
+│   │   ├── services/
+│   │   │   ├── matching.py
+│   │   │   ├── sponsorship.py
+│   │   │   ├── deduplication.py
+│   │   │   ├── enrichment.py
+│   │   │   └── ranking.py
+│   │   ├── notifications/
+│   │   │   ├── telegram.py
+│   │   │   └── email.py
+│   │   └── utils/
+│   │
+│   ├── tests/
+│   └── requirements.txt
+│
+├── frontend/
+├── supabase/
+│   └── migrations/
+├── scripts/
+├── .github/
+│   └── workflows/
+│       └── daily_jobs.yml
+├── .env.example
+├── .gitignore
+└── README.md
+
+Use:
+- Python 3.11+
+- FastAPI
+- Pydantic
+- HTTPX
+- Supabase Python client or secure PostgreSQL integration
+- BeautifulSoup only where collection is permitted
+- pytest
+- python-dotenv or equivalent configuration management
+
+Implement retry handling, timeouts, rate limiting, logging, source-specific error handling and structured output.
+
+Create reusable collector interfaces so additional job sources can be added without changing the main pipeline.
+
+---
+
+## 12. AUTOMATED DAILY EXECUTION — FREE INFRASTRUCTURE
+
+Use GitHub Actions scheduled workflows.
+
+The system should run daily at approximately 03:00 UTC, with manual execution also supported.
+
+Example workflow:
+
+name: Global AI JobPilot Daily Search
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  collect-jobs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run daily collection
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SMTP_EMAIL: ${{ secrets.SMTP_EMAIL }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python -m app.main --mode daily
+
+Ensure the working directory and Python import paths are correct.
+
+Important:
+- Use GitHub Actions free usage allowances.
+- Do not run an unnecessary always-on backend.
+- Avoid excessive workflow executions.
+- Implement a manual run command.
+- Add execution logs and failure notifications where practical.
+- Do not rely on GitHub Actions as a guaranteed real-time scheduler.
+
+Use only trusted, pinned GitHub Actions versions and review permissions.
+
+---
+
+## 13. TELEGRAM NOTIFICATIONS
+
+Implement Telegram Bot API integration.
+
+Allow the user to:
+- Receive daily job reports.
+- Open original application links.
+- See sponsorship status.
+- See match score.
+- See company and location.
+- See salary when available.
+- Receive high-priority job alerts.
+
+Message example:
+
+GLOBAL AI JOBPILOT — DAILY REPORT
+
+Date: 08 November 2026
+New matched jobs: 30
+
+1. Senior AI Engineer
+Company: Example Technologies
+Location: Berlin, Germany
+Match: 94/100
+Sponsorship: CONFIRMED
+Salary: €75,000–€95,000
+Skills: Python, FastAPI, LangGraph, RAG
+Reason: Strong match with candidate AI agent and LLM experience.
+Apply: [Direct employer link]
+
+Provide a compact report and optionally split it into multiple Telegram messages when necessary.
+
+Never expose API keys or sensitive information in notification messages.
+
+---
+
+## 14. EMAIL NOTIFICATIONS
+
+Use Gmail SMTP with an app password or another supported email delivery method.
+
+Daily report requirements:
+- Professional HTML template.
+- Maximum 30 selected jobs.
+- Separate confirmed sponsorship jobs from unverified opportunities.
+- Clickable employer application links.
+- Match score.
+- Country and city.
+- Salary where available.
+- Evidence of sponsorship.
+- Technical match explanation.
+
+Include a summary:
+- Total jobs discovered.
+- Jobs matching candidate profile.
+- Confirmed sponsorship jobs.
+- Likely sponsorship jobs.
+- Unverified opportunities.
+- New jobs saved.
+- Sources with errors.
+
+Implement error handling so a failure in Telegram does not prevent email delivery and vice versa.
+
+---
+
+## 15. FRONTEND — REACT + VITE
+
+Create a premium SaaS dashboard.
+
+Technology:
+- React
+- Vite
+- TypeScript preferred
+- Tailwind CSS
+- Lucide icons
+- Recharts
+- Supabase client for secure user-facing access
+
+Design direction:
+
+Premium, modern, minimal, professional AI SaaS.
+
+Color palette:
+- Deep navy / charcoal
+- White
+- Subtle neutral gray
+- Teal or restrained emerald accent
+- Avoid excessive purple gradients.
+- Use excellent typography, spacing, hierarchy and responsive layouts.
+
+### Required screens
+
+1. Overview Dashboard
+   - Total jobs discovered
+   - Matching opportunities
+   - Confirmed sponsorship jobs
+   - Average match score
+   - Country distribution
+   - Recent jobs
+   - Latest collection status
+
+2. All Jobs
+   - Search
+   - Pagination
+   - Match score sorting
+   - Sponsorship filters
+   - Country filters
+   - Remote/on-site filters
+   - Date filters
+   - Salary filters
+
+3. Job Details
+   - Full description
+   - Required skills
+   - Match explanation
+   - Sponsorship evidence
+   - Relocation information
+   - Employer details
+   - Original application link
+   - Save/apply tracking
+
+4. Sponsorship Tracker
+   - Confirmed
+   - Likely
+   - Unverified
+   - Unavailable
+
+5. Countries
+   - Country-wise opportunities
+   - Sponsorship distribution
+   - Average match score
+
+6. Applications
+   - Saved
+   - Applied
+   - Interview
+   - Rejected
+   - Offer
+   - Follow-up
+
+7. Sources
+   - Enabled job sources
+   - Last collection
+   - Jobs collected
+   - Source errors
+   - Enable/disable sources
+
+8. Preferences
+   - Job titles
+   - Technical skills
+   - Countries
+   - Minimum match score
+   - Sponsorship priority
+   - Daily limit
+   - Notification settings
+
+9. Settings
+   - Candidate profile
+   - Portfolio URLs
+   - Notification preferences
+   - AI provider configuration status
+
+Make the interface responsive for desktop and mobile.
+
+The dashboard must display real Supabase data, not hardcoded example records.
+
+---
+
+## 16. BACKEND API ENDPOINTS
+
+Implement REST endpoints such as:
+
+GET /api/health
+
+GET /api/jobs
+
+GET /api/jobs/{job_id}
+
+GET /api/jobs/featured
+
+GET /api/jobs/sponsorship
+
+GET /api/analytics/overview
+
+GET /api/analytics/countries
+
+GET /api/sources
+
+GET /api/preferences
+
+PUT /api/preferences
+
+GET /api/applications
+
+POST /api/applications
+
+PATCH /api/applications/{application_id}
+
+POST /api/collect/run
+
+POST /api/notifications/test
+
+Protect sensitive and administrative endpoints.
+
+Do not expose unrestricted collection triggers to unauthenticated public users.
+
+Include OpenAPI documentation.
+
+---
+
+## 17. SECURITY AND CONFIGURATION
+
+Create `.env.example` containing:
+
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+
+SMTP_EMAIL=
+SMTP_PASSWORD=
+SMTP_HOST=
+SMTP_PORT=
+
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GEMINI_API_KEY=
+
+FRONTEND_URL=
+API_BASE_URL=
+
+Never commit `.env`.
+
+Never hardcode secrets.
+
+Validate all environment variables.
+
+Use GitHub repository secrets for scheduled workflows.
+
+Use secure authentication for private dashboard data.
+
+Implement appropriate RLS policies and ensure no user can access another user's private records.
+
+---
+
+## 18. TESTING REQUIREMENTS
+
+Create unit and integration tests.
+
+Test:
+- Greenhouse collector.
+- Lever collector.
+- Ashby collector.
+- Job normalization.
+- Deduplication.
+- Sponsorship classification.
+- Match score calculation.
+- Supabase insertion.
+- Job status updates.
+- Telegram formatting.
+- Email formatting.
+- Daily job limit.
+- API endpoints.
+- Dashboard loading and filtering.
+
+Use mocked external API responses for repeatable tests.
+
+Do not rely on live websites for every automated test.
+
+Do not send actual emails or Telegram messages during tests unless explicitly configured.
+
+---
+
+## 19. IMPLEMENTATION PRIORITIES
+
+Work in this order.
+
+PHASE 1:
+- Inspect repository.
+- Initialize architecture.
+- Set up configuration.
+- Create database migrations.
+- Connect Supabase.
+- Test health endpoint.
+
+PHASE 2:
+- Implement Greenhouse, Lever and Ashby collectors.
+- Add employer board configuration.
+- Normalize collected records.
+- Implement deduplication.
+- Save jobs to Supabase.
+
+PHASE 3:
+- Build rule-based job matching.
+- Implement sponsorship evidence extraction.
+- Implement country and remote eligibility filtering.
+- Rank and select the top 30 jobs.
+
+PHASE 4:
+- Implement Telegram notifications.
+- Implement Gmail reports.
+- Add delivery logging.
+
+PHASE 5:
+- Build React dashboard.
+- Connect real backend data.
+- Implement filters and application tracking.
+
+PHASE 6:
+- Configure GitHub Actions.
+- Add secrets documentation.
+- Test scheduled and manual runs.
+- Prepare Vercel deployment.
+
+PHASE 7:
+- Complete end-to-end testing.
+- Fix errors.
+- Optimize performance.
+- Write final setup and maintenance documentation.
+
+---
+
+## 20. IMPORTANT DEVELOPMENT RULES
+
+1. Do not just explain how to build the application. Build it.
+2. Inspect existing repository files before modifying them.
+3. Do not overwrite working code without understanding it.
+4. Use modular, maintainable architecture.
+5. Do not create fake jobs or fake sponsorship records.
+6. Do not use hardcoded sample dashboard data in production.
+7. Do not scrape platforms in violation of their terms.
+8. Do not fabricate salaries, sponsorship, job posting dates, or employer details.
+9. Preserve direct employer application URLs.
+10. Handle missing and inconsistent job data safely.
+11. Keep all secrets outside the source code.
+12. Optimize for free-tier infrastructure.
+13. Avoid requiring paid AI APIs for the core functionality.
+14. Add useful error messages and execution logs.
+15. Run tests after every significant implementation phase.
+16. Update README with every required configuration step.
+17. Do not claim deployment succeeded until it is actually verified.
+18. Ask me only when a decision or credential is genuinely necessary.
+19. If an external service requires authentication or approval, explain exactly what I need to do.
+20. Keep a progress checklist in `IMPLEMENTATION_STATUS.md`.
+
+If a source is inaccessible, document the limitation and continue implementing the remaining sources.
+
+---
+
+## 21. FINAL DELIVERABLES
+
+At completion, provide:
+
+1. Complete working source code.
+2. Database migration files.
+3. Python backend.
+4. React frontend.
+5. Job source collectors.
+6. AI matching and sponsorship engine.
+7. Telegram integration.
+8. Email integration.
+9. GitHub Actions workflow.
+10. Automated tests.
+11. `.env.example`.
+12. README with step-by-step setup.
+13. Deployment instructions.
+14. Security checklist.
+15. Known limitations and free-tier usage considerations.
+
+Provide a clear status report showing which components are:
+- Implemented
+- Tested
+- Configured
+- Deployed
+- Awaiting user credentials or action
+
+### SUCCESS CRITERIA
+
+The project is considered functional when:
+
+- It can collect real job vacancies from multiple permitted sources.
+- It saves normalized records to Supabase.
+- It prevents duplicates.
+- It identifies sponsorship evidence accurately.
+- It calculates relevant candidate match scores.
+- It selects no more than 30 jobs per daily report.
+- It delivers working Telegram and email notifications.
+- It displays real collected jobs in the dashboard.
+- It can run manually and on a daily GitHub Actions schedule.
+- It can operate without a paid AI API key.
+
+**Start by inspecting the existing repository and determining the current implementation state. Then implement Phase 1 and continue sequentially, testing each phase before proceeding.**
