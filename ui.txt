@@ -485,7 +485,7 @@ Allow individual country selection.
 
 ### Notifications
 
-- Telegram notifications.
+- Discord webhook notifications.
 - Email reports.
 - High-priority alerts.
 - Daily job limit.

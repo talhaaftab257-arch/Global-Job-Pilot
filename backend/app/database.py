@@ -5,16 +5,27 @@ Handles job deduplication, application tracking, preferences, and execution logs
 """
 import json
 import logging
+import os
 import sqlite3
+import tempfile
 import uuid
+from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
 from app.config import settings
+from app.supabase_rest import SupabaseRestClient
 
 log = logging.getLogger("jobpilot.database")
 
-DB_DIR = Path(__file__).resolve().parents[1] / "data"
-DB_PATH = DB_DIR / "jobs.db"
+if os.getenv("JOBPILOT_SQLITE_PATH"):
+    DB_PATH = Path(os.environ["JOBPILOT_SQLITE_PATH"])
+    DB_DIR = DB_PATH.parent
+elif os.getenv("VERCEL"):
+    DB_DIR = Path(tempfile.gettempdir()) / "global-ai-jobpilot"
+    DB_PATH = DB_DIR / "jobs.db"
+else:
+    DB_DIR = Path(__file__).resolve().parents[1] / "data"
+    DB_PATH = DB_DIR / "jobs.db"
 
 def init_sqlite():
     DB_DIR.mkdir(parents=True, exist_ok=True)
@@ -101,7 +112,7 @@ def init_sqlite():
             sponsorship_priority INTEGER NOT NULL DEFAULT 1,
             relocation_preference INTEGER NOT NULL DEFAULT 1,
             remote_preference INTEGER NOT NULL DEFAULT 1,
-            telegram_enabled INTEGER NOT NULL DEFAULT 0,
+            discord_enabled INTEGER NOT NULL DEFAULT 0,
             email_enabled INTEGER NOT NULL DEFAULT 0,
             daily_notification_limit INTEGER NOT NULL DEFAULT 30,
             updated_at TEXT NOT NULL
@@ -121,23 +132,35 @@ def init_sqlite():
             FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
         );
         """)
+        preference_columns = {row[1] for row in conn.execute("PRAGMA table_info(job_preferences)")}
+        if "discord_enabled" not in preference_columns:
+            conn.execute("ALTER TABLE job_preferences ADD COLUMN discord_enabled INTEGER NOT NULL DEFAULT 0")
+        if "telegram_enabled" in preference_columns:
+            conn.execute("UPDATE job_preferences SET discord_enabled = telegram_enabled")
+            conn.execute("ALTER TABLE job_preferences DROP COLUMN telegram_enabled")
         conn.commit()
 
 init_sqlite()
 
 def get_supabase_headers():
-    if not settings.supabase_url or not settings.supabase_service_role_key:
+    api_key = settings.supabase_admin_key
+    if not settings.supabase_url or not api_key:
         return None
-    return {
-        "apikey": settings.supabase_service_role_key,
-        "Authorization": f"Bearer {settings.supabase_service_role_key}",
-        "Content-Type": "application/json"
+    headers = {
+        "apikey": api_key,
+        "Content-Type": "application/json",
+        "User-Agent": "GlobalAIJobPilot/1.0"
     }
+    if not api_key.startswith("sb_secret_"):
+        headers["Authorization"] = f"Bearer {api_key}"
+    return headers
 
+@lru_cache(maxsize=1)
 def get_db_client():
-    if not settings.supabase_url or not settings.supabase_service_role_key:
+    api_key = settings.supabase_admin_key
+    if not settings.supabase_url or not api_key:
         return None
-    return {"url": f"{settings.supabase_url.rstrip('/')}/rest/v1", "headers": get_supabase_headers()}
+    return SupabaseRestClient(settings.supabase_url, api_key)
 
 def save_job_supabase(client, source_type: str, board: str, job: dict) -> bool:
     headers = get_supabase_headers()
@@ -158,8 +181,19 @@ def save_job_supabase(client, source_type: str, board: str, job: dict) -> bool:
         "source_url": roots.get(source_type, "") + board,
         "active": True
     }
+    request_headers = {**headers, "Prefer": "resolution=merge-duplicates,return=representation"}
     try:
-        httpx.post(f"{url}/job_sources", headers={**headers, "Prefer": "resolution=merge-duplicates"}, json=source_payload, timeout=10)
+        source_response = httpx.post(
+            f"{url}/job_sources",
+            params={"on_conflict": "source_type,board_identifier"},
+            headers=request_headers,
+            json=source_payload,
+            timeout=15,
+        )
+        source_response.raise_for_status()
+        source_rows = source_response.json()
+        if source_rows:
+            job["source_id"] = source_rows[0].get("id")
     except Exception:
         pass
 
@@ -167,7 +201,13 @@ def save_job_supabase(client, source_type: str, board: str, job: dict) -> bool:
     sb_job.pop("remote_type", None)
 
     try:
-        r = httpx.post(f"{url}/jobs", headers={**headers, "Prefer": "resolution=merge-duplicates"}, json=sb_job, timeout=10)
+        r = httpx.post(
+            f"{url}/jobs",
+            params={"on_conflict": "canonical_url"},
+            headers=request_headers,
+            json=sb_job,
+            timeout=30,
+        )
         return r.status_code in (200, 201)
     except Exception:
         return False

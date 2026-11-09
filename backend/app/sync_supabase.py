@@ -9,16 +9,19 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("sync_supabase")
 
 def sync():
-    if not settings.supabase_url or not settings.supabase_service_role_key:
+    api_key = settings.supabase_admin_key
+    if not settings.supabase_url or not api_key:
         log.error("Supabase credentials not configured in .env")
         return
 
     headers = {
-        "apikey": settings.supabase_service_role_key,
-        "Authorization": f"Bearer {settings.supabase_service_role_key}",
+        "apikey": api_key,
         "Content-Type": "application/json",
+        "User-Agent": "GlobalAIJobPilot/1.0",
         "Prefer": "resolution=merge-duplicates"
     }
+    if not api_key.startswith("sb_secret_"):
+        headers["Authorization"] = f"Bearer {api_key}"
 
     url = f"{settings.supabase_url.rstrip('/')}/rest/v1"
 

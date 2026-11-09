@@ -10,7 +10,7 @@ Your task is to design, develop, test, and prepare for deployment a complete app
 
 This must be a real, functional, end-to-end application, not a prototype, static dashboard, or UI-only demonstration.
 
-The platform should automatically discover worldwide job opportunities matching my technical expertise, identify genuine visa sponsorship and relocation opportunities, calculate job compatibility scores, eliminate duplicates, store results, and send daily job reports through Telegram and Email.
+The platform should automatically discover worldwide job opportunities matching my technical expertise, identify genuine visa sponsorship and relocation opportunities, calculate job compatibility scores, eliminate duplicates, store results, and send daily job reports through Discord and Email.
 
 Work autonomously through the project. Inspect existing files before modifying anything. Make sensible technical decisions, implement the application in stages, run tests, and document all setup instructions.
 
@@ -464,7 +464,7 @@ Target job titles, countries, regions, skills, sponsorship preferences, daily no
 Saved jobs, applied date, application status, notes, follow-up dates.
 
 ### notifications
-Telegram and email delivery history.
+Discord and email delivery history.
 
 ### employer_sponsorship
 Employer name, country, official verification source, sponsor status, verification date and evidence.
@@ -517,7 +517,7 @@ global-ai-jobpilot/
 │   │   │   ├── enrichment.py
 │   │   │   └── ranking.py
 │   │   ├── notifications/
-│   │   │   ├── telegram.py
+│   │   │   ├── discord.py
 │   │   │   └── email.py
 │   │   └── utils/
 │   │
@@ -586,8 +586,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           SMTP_EMAIL: ${{ secrets.SMTP_EMAIL }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -607,9 +606,9 @@ Use only trusted, pinned GitHub Actions versions and review permissions.
 
 ---
 
-## 13. TELEGRAM NOTIFICATIONS
+## 13. DISCORD NOTIFICATIONS
 
-Implement Telegram Bot API integration.
+Implement Discord Bot API integration.
 
 Allow the user to:
 - Receive daily job reports.
@@ -637,7 +636,7 @@ Skills: Python, FastAPI, LangGraph, RAG
 Reason: Strong match with candidate AI agent and LLM experience.
 Apply: [Direct employer link]
 
-Provide a compact report and optionally split it into multiple Telegram messages when necessary.
+Provide a compact report and optionally split it into multiple Discord messages when necessary.
 
 Never expose API keys or sensitive information in notification messages.
 
@@ -667,7 +666,7 @@ Include a summary:
 - New jobs saved.
 - Sources with errors.
 
-Implement error handling so a failure in Telegram does not prevent email delivery and vice versa.
+Implement error handling so a failure in Discord does not prevent email delivery and vice versa.
 
 ---
 
@@ -823,8 +822,6 @@ Create `.env.example` containing:
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
 
 SMTP_EMAIL=
 SMTP_PASSWORD=
@@ -866,7 +863,7 @@ Test:
 - Match score calculation.
 - Supabase insertion.
 - Job status updates.
-- Telegram formatting.
+- Discord formatting.
 - Email formatting.
 - Daily job limit.
 - API endpoints.
@@ -876,7 +873,7 @@ Use mocked external API responses for repeatable tests.
 
 Do not rely on live websites for every automated test.
 
-Do not send actual emails or Telegram messages during tests unless explicitly configured.
+Do not send actual emails or Discord messages during tests unless explicitly configured.
 
 ---
 
@@ -906,7 +903,7 @@ PHASE 3:
 - Rank and select the top 30 jobs.
 
 PHASE 4:
-- Implement Telegram notifications.
+- Implement Discord notifications.
 - Implement Gmail reports.
 - Add delivery logging.
 
@@ -966,7 +963,7 @@ At completion, provide:
 4. React frontend.
 5. Job source collectors.
 6. AI matching and sponsorship engine.
-7. Telegram integration.
+7. Discord integration.
 8. Email integration.
 9. GitHub Actions workflow.
 10. Automated tests.
@@ -993,7 +990,7 @@ The project is considered functional when:
 - It identifies sponsorship evidence accurately.
 - It calculates relevant candidate match scores.
 - It selects no more than 30 jobs per daily report.
-- It delivers working Telegram and email notifications.
+- It delivers working Discord and email notifications.
 - It displays real collected jobs in the dashboard.
 - It can run manually and on a daily GitHub Actions schedule.
 - It can operate without a paid AI API key.

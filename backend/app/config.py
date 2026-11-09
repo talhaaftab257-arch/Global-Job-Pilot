@@ -9,16 +9,24 @@ class Settings(BaseSettings):
     )
     supabase_url: str = ""
     supabase_service_role_key: str = ""
+    supabase_secret_key: str = ""
     frontend_url: str = "http://localhost:5173"
     employer_boards: str = ""
-    telegram_bot_token: str = ""
-    telegram_chat_id: str = ""
+    discord_webhook_url: str = ""
+    admin_api_token: str = ""
+    local_auth_bypass: bool = False
     smtp_email: str = ""
     smtp_password: str = ""
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
     openai_api_key: str = ""
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
     anthropic_api_key: str = ""
     gemini_api_key: str = ""
+
+    @property
+    def supabase_admin_key(self) -> str:
+        return self.supabase_secret_key or self.supabase_service_role_key
 
 settings = Settings()

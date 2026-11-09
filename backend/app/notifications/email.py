@@ -1,54 +1,12 @@
 """
-Notifications Module: Telegram Bot & SMTP Email Delivery
+SMTP email delivery and report formatting.
 Generates structured daily intelligence reports for international AI vacancies.
 """
 import html
 import smtplib
 from datetime import datetime, timezone
 from email.message import EmailMessage
-import httpx
 from app.config import settings
-
-def format_telegram(jobs: list[dict]) -> str:
-    today_str = datetime.now(timezone.utc).strftime("%d %B %Y")
-    selected_count = min(len(jobs), 30)
-    lines = [
-        "🌐 GLOBAL AI JOBPILOT — DAILY REPORT",
-        f"📅 Date: {today_str}",
-        f"🎯 Selected Matched Jobs: {selected_count}",
-        "━━━━━━━━━━━━━━━━━━━━━━"
-    ]
-
-    for i, j in enumerate(jobs[:30], 1):
-        title = j.get("title", "Untitled")
-        company = j.get("company", "Unknown")
-        loc = [j.get("location"), j.get("country")].copy()
-        loc_str = ", ".join(filter(None, loc)) or "Location not specified"
-        score = j.get("match_score", "—")
-        sponsorship = str(j.get("sponsorship_status", "unverified")).upper()
-        salary = j.get("salary_text")
-        skills = ", ".join((j.get("required_skills") or [])[:5]) or "AI / ML"
-        reason = j.get("match_explanation") or "Matched with candidate technical profile."
-        url = j.get("application_url", "")
-
-        block = [
-            f"{i}. 💼 {title}",
-            f"🏢 Company: {company}",
-            f"📍 Location: {loc_str}",
-            f"⚡ Match: {score}/100",
-            f"🛂 Sponsorship: {sponsorship}"
-        ]
-        if salary:
-            block.append(f"💰 Salary: {salary}")
-        block.extend([
-            f"🛠 Skills: {skills}",
-            f"💡 Reason: {reason}",
-            f"🔗 Apply: {url}",
-            ""
-        ])
-        lines.extend(block)
-
-    return "\n".join(lines)
 
 def format_email(jobs: list[dict]) -> str:
     today_str = datetime.now(timezone.utc).strftime("%d %B %Y")
@@ -161,24 +119,6 @@ def format_email(jobs: list[dict]) -> str:
     </body>
     </html>
     """
-
-async def send_telegram(jobs: list[dict]) -> bool:
-    if not settings.telegram_bot_token or not settings.telegram_chat_id:
-        return False
-    text = format_telegram(jobs)
-    async with httpx.AsyncClient(timeout=20) as client:
-        # Split across 3900 character chunks to respect Telegram message limits
-        for part in [text[i:i + 3900] for i in range(0, len(text), 3900)]:
-            r = await client.post(
-                f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage",
-                json={
-                    "chat_id": settings.telegram_chat_id,
-                    "text": part,
-                    "disable_web_page_preview": True
-                }
-            )
-            r.raise_for_status()
-    return True
 
 def send_email(jobs: list[dict]) -> bool:
     if not settings.smtp_email or not settings.smtp_password:

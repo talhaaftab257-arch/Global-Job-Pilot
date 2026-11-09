@@ -35,7 +35,7 @@ create table if not exists public.job_preferences (
   target_titles text[] not null default '{}', target_countries text[] not null default '{}', target_regions text[] not null default '{}',
   skills text[] not null default '{}', minimum_match_score integer not null default 70, sponsorship_priority boolean not null default true,
   relocation_preference boolean not null default true, remote_preference boolean not null default true,
-  telegram_enabled boolean not null default false, email_enabled boolean not null default false,
+  discord_enabled boolean not null default false, email_enabled boolean not null default false,
   daily_notification_limit integer not null default 30 check(daily_notification_limit between 1 and 30), updated_at timestamptz not null default now()
 );
 create table if not exists public.applications (
@@ -45,7 +45,7 @@ create table if not exists public.applications (
 );
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id) on delete cascade,
-  channel text not null check(channel in ('telegram','email')), status text not null default 'pending',
+  channel text not null check(channel in ('discord','email','legacy')), status text not null default 'pending',
   job_run_id uuid references public.job_runs(id) on delete set null, recipient text, job_count integer not null default 0,
   error text, sent_at timestamptz, created_at timestamptz not null default now()
 );

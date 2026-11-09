@@ -66,7 +66,54 @@ const NAV_ITEMS = [
   ['Settings', '/settings', SettingsIcon]
 ] as const;
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// Use Vite's same-origin proxy by default so the API remains reachable when
+// the dashboard is opened through the machine's LAN address.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
+async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) headers.set('Authorization', `Bearer ${data.session.access_token}`);
+  }
+  return window.fetch(input, { ...init, headers });
+}
+
+function AuthScreen() {
+  const [mode, setMode] = useState<'sign_in' | 'sign_up'>('sign_in');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!supabase) return;
+    setBusy(true);
+    setMessage('');
+    const result = mode === 'sign_in'
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password });
+    setBusy(false);
+    if (result.error) setMessage(result.error.message);
+    else if (mode === 'sign_up' && !result.data.session) setMessage('Check your email to confirm your account, then sign in.');
+  };
+
+  return (
+    <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#f4f7fc', padding: 20 }}>
+      <form onSubmit={submit} className="card form-card" style={{ width: 'min(420px, 100%)' }}>
+        <h1 style={{ marginTop: 0 }}>{mode === 'sign_in' ? 'Sign in to JobPilot' : 'Create your JobPilot account'}</h1>
+        <label>Email<input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+        <label>Password<input type="password" required minLength={8} autoComplete={mode === 'sign_in' ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+        {message && <p role="status">{message}</p>}
+        <button className="primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'sign_in' ? 'Sign in' : 'Create account'}</button>
+        <button type="button" className="textbtn" onClick={() => { setMode(mode === 'sign_in' ? 'sign_up' : 'sign_in'); setMessage(''); }}>
+          {mode === 'sign_in' ? 'Create an account' : 'I already have an account'}
+        </button>
+      </form>
+    </main>
+  );
+}
 
 export function App() {
   const [drawer, setDrawer] = useState(false);
@@ -77,7 +124,23 @@ export function App() {
   const [saved, setSaved] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [notice, setNotice] = useState('');
+  const [session, setSession] = useState<any>(null);
+  const [authReady, setAuthReady] = useState(!supabase);
   const navigate = useNavigate();
+  const authorized = !supabase || Boolean(session);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthReady(true);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      setSession(currentSession);
+      setAuthReady(true);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   const flash = (msg: string) => {
     setNotice(msg);
@@ -86,7 +149,7 @@ export function App() {
 
   const loadJobs = () => {
     setLoading(true);
-    fetch(`${API_BASE}/api/jobs?limit=500`)
+    apiFetch(`${API_BASE}/api/jobs?limit=500`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed to load jobs'))))
       .then((data) => {
         setJobs(data.items ?? []);
@@ -94,15 +157,16 @@ export function App() {
         setLoading(false);
       })
       .catch(() => {
-        setError('Backend API is not available. Ensure FastAPI is running on port 8000.');
+        setError('Could not load jobs. Check your sign-in and API connection, then refresh.');
         setLoading(false);
       });
   };
 
   useEffect(() => {
+    if (!authorized) return;
     loadJobs();
     // Load existing saved application IDs
-    fetch(`${API_BASE}/api/applications`)
+    apiFetch(`${API_BASE}/api/applications`)
       .then((r) => (r.ok ? r.json() : { items: [] }))
       .then((res) => {
         if (res.items) {
@@ -110,18 +174,23 @@ export function App() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [authorized]);
+
+  if (!authReady) return <div className="empty">Checking your session…</div>;
+  if (supabase && !session) return <AuthScreen />;
 
   const triggerRun = async () => {
     setRunning(true);
     try {
-      const res = await fetch(`${API_BASE}/api/collect/run`, { method: 'POST' });
+      const res = await apiFetch(`${API_BASE}/api/collect/run`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         flash(`Search finished: ${data.discovered} discovered, ${data.saved} new saved.`);
         loadJobs();
       } else {
-        flash('Collection request failed. Check server status.');
+        flash(res.status === 403
+          ? 'Use GitHub Actions to start a production collection run.'
+          : 'Collection request failed. Check server status.');
       }
     } catch {
       flash('Unable to connect to collection backend.');
@@ -137,7 +206,7 @@ export function App() {
 
     try {
       if (!isSaved) {
-        await fetch(`${API_BASE}/api/applications`, {
+        await apiFetch(`${API_BASE}/api/applications`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ job_id: jobId, status: 'saved' })
@@ -210,7 +279,7 @@ export function App() {
           </button>
         </div>
 
-        <div className="profile">
+        <div className="profile" role="button" tabIndex={0} title="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>
           <div className="avatar">TA</div>
           <div>
             <b>Talha Aftab</b>
@@ -995,6 +1064,9 @@ function JobDetailScreen({
   const [job, setJob] = useState<Job | null>(null);
   const [tab, setTab] = useState<'overview' | 'requirements' | 'sponsorship' | 'fit'>('overview');
   const [loading, setLoading] = useState(true);
+  const [aiAnalysis, setAiAnalysis] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
 
   useEffect(() => {
     const existing = jobs.find((j) => j.id === id);
@@ -1002,7 +1074,7 @@ function JobDetailScreen({
       setJob(existing);
       setLoading(false);
     } else if (id) {
-      fetch(`${API_BASE}/api/jobs/${id}`)
+      apiFetch(`${API_BASE}/api/jobs/${id}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           setJob(data);
@@ -1036,6 +1108,20 @@ function JobDetailScreen({
 
   const isSaved = saved.includes(job.id);
   const loc = [job.location, job.country].filter(Boolean).join(', ') || 'Location not listed';
+  const analyzeWithGroq = async () => {
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const response = await apiFetch(`${API_BASE}/api/ai/analyze-job/${job.id}`, { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Groq analysis failed.');
+      setAiAnalysis(data.analysis);
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : 'Groq analysis failed.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   return (
     <>
@@ -1169,6 +1255,16 @@ function JobDetailScreen({
           {tab === 'fit' && (
             <div>
               <h3>Candidate Alignment Analysis</h3>
+              <button className="primary" onClick={analyzeWithGroq} disabled={aiLoading} style={{ marginBottom: 12 }}>
+                {aiLoading ? 'Analyzing with Groq…' : 'Analyze this job with Groq'}
+              </button>
+              {aiError && <p role="alert" style={{ color: '#b91c1c' }}>{aiError}</p>}
+              {aiAnalysis && (
+                <div className="card" style={{ whiteSpace: 'pre-wrap', padding: 16, marginBottom: 14 }}>
+                  <strong>Groq AI assessment</strong>
+                  <p>{aiAnalysis}</p>
+                </div>
+              )}
               <div style={{ background: '#eef6fc', padding: 16, borderRadius: 8, marginBottom: 14 }}>
                 <h4 style={{ margin: '0 0 6px', color: '#1e3a8a' }}>
                   Talha Aftab &bull; Lead Data Scientist / AI Engineer
@@ -1369,7 +1465,7 @@ function CountriesScreen({
   const [data, setData] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/analytics/countries`)
+    apiFetch(`${API_BASE}/api/analytics/countries`)
       .then((r) => (r.ok ? r.json() : []))
       .then((items) => {
         setData(items);
@@ -1433,7 +1529,7 @@ function ApplicationsScreen({
   const [tab, setTab] = useState('all');
 
   const loadApps = () => {
-    fetch(`${API_BASE}/api/applications`)
+    apiFetch(`${API_BASE}/api/applications`)
       .then((r) => (r.ok ? r.json() : { items: [] }))
       .then((res) => setApps(res.items || []))
       .catch(() => {});
@@ -1445,7 +1541,7 @@ function ApplicationsScreen({
 
   const updateStatus = async (appId: string, newStatus: string) => {
     try {
-      await fetch(`${API_BASE}/api/applications/${appId}`, {
+      await apiFetch(`${API_BASE}/api/applications/${appId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -1459,7 +1555,7 @@ function ApplicationsScreen({
 
   const addQuickJob = async (job: Job) => {
     try {
-      await fetch(`${API_BASE}/api/applications`, {
+      await apiFetch(`${API_BASE}/api/applications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ job_id: job.id, status: 'saved' })
@@ -1570,7 +1666,7 @@ function SourcesScreen({
   const [sources, setSources] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/sources`)
+    apiFetch(`${API_BASE}/api/sources`)
       .then((r) => (r.ok ? r.json() : { items: [] }))
       .then((res) => setSources(res.items || []))
       .catch(() => {});
@@ -1640,7 +1736,7 @@ function PreferencesScreen({ flash }: { flash: (s: string) => void }) {
   const [countries, setCountries] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/preferences`)
+    apiFetch(`${API_BASE}/api/preferences`)
       .then((r) => (r.ok ? r.json() : null))
       .then((p) => {
         if (p) {
@@ -1670,7 +1766,7 @@ function PreferencesScreen({ flash }: { flash: (s: string) => void }) {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/api/preferences`, {
+      const res = await apiFetch(`${API_BASE}/api/preferences`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -1822,7 +1918,7 @@ function SettingsScreen({ flash }: { flash: (s: string) => void }) {
   const [health, setHealth] = useState<any>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/health`)
+    apiFetch(`${API_BASE}/api/health`)
       .then((r) => (r.ok ? r.json() : null))
       .then(setHealth)
       .catch(() => {});

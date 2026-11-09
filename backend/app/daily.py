@@ -5,7 +5,13 @@ from datetime import datetime, timezone
 from app.config import settings
 from app.collectors.public_ats import COLLECTORS
 from app.database import get_db_client, save_job, record_job_run_sqlite, list_jobs_sqlite
-from app.notifications import send_email, send_telegram
+from app.notifications import (
+    send_collection_summary,
+    send_daily_report,
+    send_email,
+    send_failure_report,
+    send_priority_alerts,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger("jobpilot.daily")
@@ -54,13 +60,32 @@ async def run_daily():
         key=lambda j: (status_priority.get(j.get("sponsorship_status", "unverified"), 3), -(j.get("match_score") or 0))
     )[:30]
 
-    # Isolated delivery: failure of one provider never blocks the other
+    # Each provider is isolated so delivery failures never prevent email delivery.
     delivery_report = []
     try:
-        tg_sent = await send_telegram(ranked)
-        delivery_report.append({"channel": "telegram", "status": "sent" if tg_sent else "skipped"})
+        sent = await send_daily_report(ranked)
+        delivery_report.append({"channel": "discord", "status": "sent" if sent else "skipped"})
     except Exception as exc:
-        delivery_report.append({"channel": "telegram", "status": "failed", "error": str(exc)[:180]})
+        delivery_report.append({"channel": "discord", "status": "failed", "error": type(exc).__name__})
+
+    try:
+        await send_priority_alerts(ranked)
+    except Exception as exc:
+        delivery_report.append({"channel": "discord_priority_alerts", "status": "failed", "error": type(exc).__name__})
+
+    try:
+        summary_for_notice = {
+            "sources": sources_count,
+            "discovered": len(found),
+            "saved": len(found),
+            "duration_seconds": round(time.monotonic() - start_time, 2),
+            "errors": errors,
+        }
+        await send_collection_summary(summary_for_notice)
+        if errors:
+            await send_failure_report(errors)
+    except Exception as exc:
+        delivery_report.append({"channel": "discord_status", "status": "failed", "error": type(exc).__name__})
 
     try:
         email_sent = await asyncio.to_thread(send_email, ranked)

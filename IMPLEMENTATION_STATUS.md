@@ -17,7 +17,7 @@
 - [x] **Visa Sponsorship Intelligence Engine:** Vacancy-specific evidence extraction classifying roles into `confirmed`, `likely`, `unverified`, or `unavailable` with strict validation against domestic-only restrictions.
 - [x] **AI Candidate Matching Engine:** 100-point heuristic scoring algorithm evaluating technical skills (30), role terms (20), AI/ML relevance (15), seniority (10), sponsorship (15), destination eligibility (5), and posting recency (5).
 - [x] **Application Pipeline Tracking:** Full interactive status management (Saved, Applied, Interview, Offer, Rejected) with note-taking and direct employer application links.
-- [x] **Automated Daily Reporting (Free Tier):** GitHub Actions workflow scheduled for daily execution at 03:00 UTC with manual dispatch support, 30-job top-match cap, and independent Telegram and Gmail SMTP delivery modules.
+- [x] **Automated Daily Reporting (Free Tier):** GitHub Actions workflow scheduled for daily execution at 03:00 UTC with manual dispatch support, 30-job top-match cap, and independent Discord webhook and Gmail SMTP delivery modules.
 - [x] **Database Migration & Security:** Complete version-controlled SQL migration (`202611080001_initial_schema.sql`) implementing 8 tables, indexes, and Row Level Security (RLS) policies.
 
 ---
@@ -92,8 +92,8 @@
 1. **Supabase Remote Migration (Optional):**
    - If utilizing the remote hosted Supabase project, navigate to **Supabase Dashboard > SQL Editor** and execute `supabase/migrations/202611080001_initial_schema.sql`.
    - (The platform runs immediately and seamlessly using local persistence if remote tables are not yet created).
-2. **Telegram Bot & Email Alerts (Optional):**
-   - To receive the daily automated report on Telegram, add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` to `.env`.
+2. **Discord & Email Alerts (Optional):**
+   - To receive daily automated reports in Discord, add `DISCORD_WEBHOOK_URL` to `.env`.
    - To receive email reports via Gmail, add `SMTP_EMAIL` and `SMTP_PASSWORD` (App Password) to `.env`.
 3. **GitHub Actions Secrets:**
-   - Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SMTP_EMAIL`, `SMTP_PASSWORD` to your GitHub repository secrets for hands-free daily reports at 03:00 UTC.
+   - Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `DISCORD_WEBHOOK_URL`, `SMTP_EMAIL`, and `SMTP_PASSWORD` to your GitHub repository secrets for hands-free daily reports at 03:00 UTC.

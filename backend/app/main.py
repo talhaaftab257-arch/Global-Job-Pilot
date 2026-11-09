@@ -4,16 +4,19 @@ import ipaddress
 import json
 import sqlite3
 import uuid
+import secrets
 from datetime import datetime, timezone
+import httpx
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.config import settings
 from app.collectors.public_ats import COLLECTORS
 from app.database import (
     get_db_client, save_job, list_jobs_sqlite, get_job_sqlite,
     record_job_run_sqlite, DB_PATH
 )
-from app.notifications import format_email, format_telegram, send_email, send_telegram
+from app.notifications import send_email, send_test_message
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger("jobpilot.api")
@@ -38,6 +41,45 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+
+@app.middleware("http")
+async def authenticate_api_requests(request: Request, call_next):
+    if not request.url.path.startswith("/api/") or request.url.path == "/api/health" or request.method == "OPTIONS":
+        return await call_next(request)
+
+    if settings.supabase_url and settings.supabase_admin_key:
+        authorization = request.headers.get("authorization", "")
+        token = authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
+        if not token:
+            peer = request.client.host if request.client else ""
+            try:
+                is_local = ipaddress.ip_address(peer).is_loopback
+            except ValueError:
+                is_local = peer == "testclient"
+            if settings.local_auth_bypass and is_local:
+                request.state.user_id = "local"
+                return await call_next(request)
+            return JSONResponse({"detail": "Sign in to use this API."}, status_code=401)
+        try:
+            auth_response = get_db_client().auth.get_user(token)
+            user = getattr(auth_response, "user", None)
+            if not user or not user.id:
+                return JSONResponse({"detail": "Invalid or expired session."}, status_code=401)
+            request.state.user_id = str(user.id)
+        except Exception:
+            return JSONResponse({"detail": "Invalid or expired session."}, status_code=401)
+    else:
+        peer = request.client.host if request.client else ""
+        try:
+            is_local = ipaddress.ip_address(peer).is_loopback
+        except ValueError:
+            is_local = settings.local_auth_bypass and peer == "testclient"
+        if not is_local:
+            return JSONResponse({"detail": "Supabase authentication is not configured."}, status_code=503)
+        request.state.user_id = "local"
+
+    return await call_next(request)
+
 @app.get("/api/health")
 def health():
     db = get_db_client()
@@ -45,18 +87,29 @@ def health():
         item.strip() for item in settings.employer_boards.split(",")
         if ":" in item.strip()
     ]
-    # Check jobs count from local database
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM jobs WHERE status='open'")
-        local_jobs_count = cur.fetchone()[0]
+    local_jobs_count = 0
+    database_reachable = False
+    if db:
+        try:
+            count_result = db.table("jobs").select("id", count="exact").eq("status", "open").limit(1).execute()
+            local_jobs_count = count_result.count or 0
+            database_reachable = True
+        except Exception as exc:
+            log.warning("Supabase health query failed: %s", type(exc).__name__)
+    else:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM jobs WHERE status='open'")
+            local_jobs_count = cur.fetchone()[0]
 
     return {
         "status": "ok",
-        "database_configured": bool(settings.supabase_url and settings.supabase_service_role_key),
+        "database_configured": bool(settings.supabase_url and settings.supabase_admin_key),
+        "database_reachable": database_reachable if db else False,
         "sources_configured": len(configured_sources),
         "total_jobs": local_jobs_count,
-        "ai_engine": "rule-based heuristic active" + (" (OpenAI configured)" if settings.openai_api_key else "")
+        "ai_engine": "Groq configured" if settings.groq_api_key else "rule-based heuristic active",
+        "groq_configured": bool(settings.groq_api_key)
     }
 
 @app.get("/api/jobs")
@@ -126,10 +179,81 @@ def job_detail(job_id: str):
         raise HTTPException(404, "Job not found")
     return job
 
+
+def _analytics_jobs(use_local: bool = False) -> list[dict]:
+    db = get_db_client()
+    if not db or use_local:
+        return list_jobs_sqlite(limit=10000, offset=0)["items"]
+
+    jobs_data = []
+    try:
+        offset = 0
+        while offset < 50000:
+            response = (
+                db.table("jobs")
+                .select("sponsorship_status,match_score,country")
+                .eq("status", "open")
+                .range(offset, offset + 999)
+                .execute()
+            )
+            page = response.data or []
+            jobs_data.extend(page)
+            if len(page) < 1000:
+                break
+            offset += 1000
+        return jobs_data
+    except Exception as exc:
+        log.warning("Supabase analytics query failed: %s", type(exc).__name__)
+        raise HTTPException(503, "Analytics data is unavailable.") from exc
+
+@app.post("/api/ai/analyze-job/{job_id}")
+async def analyze_job_with_groq(job_id: str):
+    if not settings.groq_api_key:
+        raise HTTPException(503, "Groq is not configured. Add GROQ_API_KEY to the backend .env file.")
+
+    job = get_job_sqlite(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+
+    prompt = (
+        "Assess this vacancy for a candidate based in Rawalpindi, Pakistan: Lead Data Scientist / AI Engineer; "
+        "skills include Python, FastAPI, LangGraph, RAG, multi-agent systems, PyTorch, Docker, SQL and Supabase. "
+        "Give a concise evidence-based assessment with: fit (0-100), strongest overlaps, gaps/risks, "
+        "and visa/relocation evidence. Do not infer sponsorship if the description does not explicitly support it. "
+        "Clearly label unknown details.\n\n"
+        f"Title: {job.get('title')}\nCompany: {job.get('company')}\nLocation: {job.get('location')}\n"
+        f"Existing sponsorship classification: {job.get('sponsorship_status')}\n"
+        f"Description: {(job.get('description') or '')[:10000]}"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=45) as client:
+            response = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {settings.groq_api_key}"},
+                json={
+                    "model": settings.groq_model,
+                    "messages": [
+                        {"role": "system", "content": "You are a careful international AI careers analyst. Use only evidence in the supplied job description."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.2,
+                    "max_tokens": 600
+                }
+            )
+            response.raise_for_status()
+            result = response.json()["choices"][0]["message"]["content"]
+        return {"analysis": result, "model": settings.groq_model}
+    except httpx.HTTPStatusError as exc:
+        log.warning("Groq analysis request failed with status %s", exc.response.status_code)
+        raise HTTPException(502, "Groq analysis request failed. Check the backend key, model, and account limits.") from exc
+    except (httpx.HTTPError, KeyError, IndexError, TypeError) as exc:
+        log.warning("Groq analysis request failed: %s", type(exc).__name__)
+        raise HTTPException(502, "Could not get an analysis from Groq.") from exc
+
 @app.get("/api/analytics/overview")
-def overview():
-    res = list_jobs_sqlite(limit=1000, offset=0)
-    items = res["items"]
+def overview(request: Request):
+    items = _analytics_jobs(request.state.user_id == "local")
     counts = {
         s: sum(1 for j in items if j.get("sponsorship_status") == s)
         for s in ["confirmed", "likely", "unverified", "unavailable"]
@@ -149,8 +273,8 @@ def overview():
     }
 
 @app.get("/api/analytics/countries")
-def countries():
-    items = list_jobs_sqlite(limit=1000, offset=0)["items"]
+def countries(request: Request):
+    items = _analytics_jobs(request.state.user_id == "local")
     out = {}
     for j in items:
         c = j.get("country") or "Other"
@@ -170,14 +294,27 @@ def countries():
 @app.get("/api/sources")
 def get_sources():
     items = []
-    # Count jobs per source from local DB
+    # Use the shared database in deployed environments; SQLite is only the local fallback.
     source_counts = {}
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT source_name, COUNT(*) FROM jobs GROUP BY source_name")
-        for s_name, count in cur.fetchall():
-            if s_name:
-                source_counts[s_name] = count
+    db = get_db_client()
+    if db:
+        for item in settings.employer_boards.split(","):
+            if ":" not in item:
+                continue
+            kind, slug = item.strip().split(":", 1)
+            source_name = f"{kind}:{slug}"
+            try:
+                result = db.table("jobs").select("id", count="exact").eq("source_name", source_name).eq("status", "open").limit(1).execute()
+                source_counts[source_name] = result.count or 0
+            except Exception as exc:
+                log.warning("Supabase source count failed: %s", type(exc).__name__)
+    else:
+        with sqlite3.connect(DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT source_name, COUNT(*) FROM jobs GROUP BY source_name")
+            for s_name, count in cur.fetchall():
+                if s_name:
+                    source_counts[s_name] = count
 
     for item in settings.employer_boards.split(","):
         if ":" not in item:
@@ -200,23 +337,7 @@ def get_sources():
             })
     return {"items": items}
 
-@app.get("/api/preferences")
-def get_preferences():
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM job_preferences LIMIT 1")
-        row = cur.fetchone()
-        if row:
-            d = dict(row)
-            for k in ["target_titles", "target_countries", "target_regions", "skills"]:
-                try:
-                    d[k] = json.loads(d[k])
-                except Exception:
-                    d[k] = []
-            return d
-
-    # Default profile preferences
+def _default_preferences() -> dict:
     return {
         "target_titles": [
             "AI Engineer", "Applied AI Engineer", "Agentic AI Engineer",
@@ -240,15 +361,69 @@ def get_preferences():
         "daily_notification_limit": 30
     }
 
+
+@app.get("/api/preferences")
+def get_preferences(request: Request):
+    db = get_db_client()
+    if db and request.state.user_id != "local":
+        try:
+            result = db.table("job_preferences").select("*").eq("user_id", request.state.user_id).maybe_single().execute()
+            if result.data:
+                return result.data
+            return _default_preferences()
+        except Exception as exc:
+            log.warning("Supabase preferences read failed: %s", type(exc).__name__)
+            raise HTTPException(503, "Preferences storage is unavailable.") from exc
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM job_preferences LIMIT 1")
+        row = cur.fetchone()
+        if row:
+            d = dict(row)
+            for k in ["target_titles", "target_countries", "target_regions", "skills"]:
+                try:
+                    d[k] = json.loads(d[k])
+                except Exception:
+                    d[k] = []
+            return d
+
+    return _default_preferences()
+
 @app.put("/api/preferences")
-def update_preferences(payload: dict):
+def update_preferences(payload: dict, request: Request):
     now = datetime.now(timezone.utc).isoformat()
+    db = get_db_client()
+    if db and request.state.user_id != "local":
+        preference = {
+            "user_id": request.state.user_id,
+            "target_titles": payload.get("target_titles", []),
+            "target_countries": payload.get("target_countries", []),
+            "target_regions": payload.get("target_regions", []),
+            "skills": payload.get("skills", []),
+            "minimum_match_score": payload.get("minimum_match_score", 70),
+            "sponsorship_priority": payload.get("sponsorship_priority", True),
+            "relocation_preference": payload.get("relocation_preference", True),
+            "remote_preference": payload.get("remote_preference", True),
+            "discord_enabled": payload.get("discord_enabled", False),
+            "email_enabled": payload.get("email_enabled", False),
+            "daily_notification_limit": payload.get("daily_notification_limit", 30),
+            "updated_at": now,
+        }
+        try:
+            db.table("job_preferences").upsert(preference, on_conflict="user_id").execute()
+            return {"status": "success", "updated_at": now}
+        except Exception as exc:
+            log.warning("Supabase preferences write failed: %s", type(exc).__name__)
+            raise HTTPException(503, "Preferences could not be saved.") from exc
+
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
         INSERT INTO job_preferences (
             id, target_titles, target_countries, target_regions, skills,
             minimum_match_score, sponsorship_priority, relocation_preference,
-            remote_preference, telegram_enabled, email_enabled, daily_notification_limit, updated_at
+            remote_preference, discord_enabled, email_enabled, daily_notification_limit, updated_at
         ) VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             target_titles=excluded.target_titles,
@@ -259,7 +434,7 @@ def update_preferences(payload: dict):
             sponsorship_priority=excluded.sponsorship_priority,
             relocation_preference=excluded.relocation_preference,
             remote_preference=excluded.remote_preference,
-            telegram_enabled=excluded.telegram_enabled,
+            discord_enabled=excluded.discord_enabled,
             email_enabled=excluded.email_enabled,
             daily_notification_limit=excluded.daily_notification_limit,
             updated_at=excluded.updated_at
@@ -272,25 +447,32 @@ def update_preferences(payload: dict):
             1 if payload.get("sponsorship_priority", True) else 0,
             1 if payload.get("relocation_preference", True) else 0,
             1 if payload.get("remote_preference", True) else 0,
-            1 if payload.get("telegram_enabled", False) else 0,
+            1 if payload.get("discord_enabled", False) else 0,
             1 if payload.get("email_enabled", False) else 0,
             payload.get("daily_notification_limit", 30),
             now
         ))
         conn.commit()
 
-    # Mirror to Supabase if available
-    db = get_db_client()
-    if db:
-        try:
-            db.table("job_preferences").upsert(payload).execute()
-        except Exception:
-            pass
-
     return {"status": "success", "updated_at": now}
 
 @app.get("/api/applications")
-def applications():
+def applications(request: Request):
+    db = get_db_client()
+    if db and request.state.user_id != "local":
+        try:
+            result = (
+                db.table("applications")
+                .select("id,job_id,status,applied_at,notes,created_at,jobs(title,company,location,country,match_score,sponsorship_status,application_url)")
+                .eq("user_id", request.state.user_id)
+                .order("created_at", desc=True)
+                .execute()
+            )
+            return {"items": result.data or []}
+        except Exception as exc:
+            log.warning("Supabase application list failed: %s", type(exc).__name__)
+            raise HTTPException(503, "Applications storage is unavailable.") from exc
+
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
@@ -327,7 +509,7 @@ def applications():
         return {"items": items}
 
 @app.post("/api/applications")
-def create_application(payload: dict):
+def create_application(payload: dict, request: Request):
     job_id = payload.get("job_id")
     if not job_id:
         raise HTTPException(400, "job_id is required")
@@ -335,6 +517,24 @@ def create_application(payload: dict):
     status = payload.get("status", "saved")
     notes = payload.get("notes", "")
     now = datetime.now(timezone.utc).isoformat()
+
+    db = get_db_client()
+    if db and request.state.user_id != "local":
+        application = {
+            "user_id": request.state.user_id,
+            "job_id": job_id,
+            "status": status,
+            "applied_at": now if status == "applied" else None,
+            "notes": notes,
+            "updated_at": now,
+        }
+        try:
+            result = db.table("applications").upsert(application, on_conflict="user_id,job_id").select("id,job_id,status").execute()
+            saved = (result.data or [{}])[0]
+            return {"id": saved.get("id"), "job_id": job_id, "status": status}
+        except Exception as exc:
+            log.warning("Supabase application save failed: %s", type(exc).__name__)
+            raise HTTPException(503, "Application could not be saved.") from exc
 
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
@@ -354,10 +554,30 @@ def create_application(payload: dict):
     return {"id": app_id, "job_id": job_id, "status": status}
 
 @app.patch("/api/applications/{application_id}")
-def update_application(application_id: str, payload: dict):
+def update_application(application_id: str, payload: dict, request: Request):
     status = payload.get("status")
     notes = payload.get("notes")
     now = datetime.now(timezone.utc).isoformat()
+
+    db = get_db_client()
+    if db and request.state.user_id != "local":
+        changes = {"updated_at": now}
+        if status:
+            changes["status"] = status
+            if status == "applied":
+                changes["applied_at"] = now
+        if notes is not None:
+            changes["notes"] = notes
+        try:
+            result = db.table("applications").update(changes).eq("id", application_id).eq("user_id", request.state.user_id).select("id").execute()
+            if not result.data:
+                raise HTTPException(404, "Application not found")
+            return {"status": "success", "id": application_id}
+        except HTTPException:
+            raise
+        except Exception as exc:
+            log.warning("Supabase application update failed: %s", type(exc).__name__)
+            raise HTTPException(503, "Application could not be updated.") from exc
 
     with sqlite3.connect(DB_PATH) as conn:
         if status and notes is not None:
@@ -372,15 +592,7 @@ def update_application(application_id: str, payload: dict):
 
 @app.post("/api/collect/run")
 async def collect_run(request: Request):
-    # Allow localhost or authenticated execution
-    peer = request.client.host if request.client else ""
-    try:
-        is_local = ipaddress.ip_address(peer).is_loopback
-    except ValueError:
-        is_local = False
-
-    if not is_local:
-        raise HTTPException(403, "Collection trigger is available from localhost only")
+    _require_admin_request(request)
 
     if not settings.employer_boards:
         raise HTTPException(503, "Configure EMPLOYER_BOARDS in your environment first.")
@@ -438,28 +650,47 @@ async def collect_run(request: Request):
     return summary
 
 @app.post("/api/notifications/test")
-async def test_notification():
+async def test_notification(request: Request):
+    _require_admin_request(request)
     items = list_jobs_sqlite(limit=30, sort="match")["items"]
     results = {}
-    if settings.telegram_bot_token and settings.telegram_chat_id:
+    if settings.discord_webhook_url:
         try:
-            sent = await send_telegram(items)
-            results["telegram"] = "sent" if sent else "skipped"
-        except Exception as e:
-            results["telegram"] = f"error: {str(e)}"
+            sent = await send_test_message()
+            results["discord"] = "sent" if sent else "skipped"
+        except Exception as exc:
+            log.warning("Discord test notification failed: %s", type(exc).__name__)
+            results["discord"] = "delivery failed; check backend logs"
     else:
-        results["telegram"] = "not configured"
+        results["discord"] = "not configured"
 
     if settings.smtp_email and settings.smtp_password:
         try:
             sent = send_email(items)
             results["email"] = "sent" if sent else "skipped"
-        except Exception as e:
-            results["email"] = f"error: {str(e)}"
+        except Exception as exc:
+            log.warning("Email test notification failed: %s", type(exc).__name__)
+            results["email"] = "delivery failed; check backend logs"
     else:
         results["email"] = "not configured"
 
     return results
+
+
+def _require_admin_request(request: Request) -> None:
+    if settings.admin_api_token:
+        provided = request.headers.get("x-admin-token", "")
+        if not secrets.compare_digest(provided, settings.admin_api_token):
+            raise HTTPException(403, "Administrative authorization required")
+        return
+
+    peer = request.client.host if request.client else ""
+    try:
+        if ipaddress.ip_address(peer).is_loopback:
+            return
+    except ValueError:
+        pass
+    raise HTTPException(403, "Administrative authorization required")
 
 if __name__ == "__main__":
     import uvicorn
