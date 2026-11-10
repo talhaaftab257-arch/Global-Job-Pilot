@@ -47,18 +47,29 @@ async def authenticate_api_requests(request: Request, call_next):
     if not request.url.path.startswith("/api/") or request.url.path == "/api/health" or request.method == "OPTIONS":
         return await call_next(request)
 
+    peer = request.client.host if request.client else ""
+    is_local = False
+    try:
+        is_local = ipaddress.ip_address(peer).is_loopback
+    except ValueError:
+        is_local = peer in ("testclient", "localhost", "127.0.0.1", "")
+
+    if settings.local_auth_bypass or is_local:
+        request.state.user_id = "local"
+        return await call_next(request)
+
+    public_prefixes = ("/api/jobs", "/api/sources", "/api/analytics")
+    if request.method == "GET" and (
+        any(request.url.path.startswith(prefix) for prefix in public_prefixes)
+        or request.url.path == "/api/preferences"
+    ):
+        request.state.user_id = "local" if is_local else "anonymous"
+        return await call_next(request)
+
     if settings.supabase_url and settings.supabase_admin_key:
         authorization = request.headers.get("authorization", "")
         token = authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
         if not token:
-            peer = request.client.host if request.client else ""
-            try:
-                is_local = ipaddress.ip_address(peer).is_loopback
-            except ValueError:
-                is_local = peer == "testclient"
-            if settings.local_auth_bypass and is_local:
-                request.state.user_id = "local"
-                return await call_next(request)
             return JSONResponse({"detail": "Sign in to use this API."}, status_code=401)
         try:
             auth_response = get_db_client().auth.get_user(token)
@@ -69,14 +80,7 @@ async def authenticate_api_requests(request: Request, call_next):
         except Exception:
             return JSONResponse({"detail": "Invalid or expired session."}, status_code=401)
     else:
-        peer = request.client.host if request.client else ""
-        try:
-            is_local = ipaddress.ip_address(peer).is_loopback
-        except ValueError:
-            is_local = settings.local_auth_bypass and peer == "testclient"
-        if not is_local:
-            return JSONResponse({"detail": "Supabase authentication is not configured."}, status_code=503)
-        request.state.user_id = "local"
+        return JSONResponse({"detail": "Supabase authentication is not configured."}, status_code=503)
 
     return await call_next(request)
 
@@ -114,6 +118,7 @@ def health():
 
 @app.get("/api/jobs")
 def jobs(
+    request: Request = None,
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     sponsorship: str | None = None,
@@ -121,10 +126,27 @@ def jobs(
     query: str | None = None,
     sort: str = "match"
 ):
+    user_id = getattr(request.state, "user_id", "local") if request else "local"
+    if user_id == "local" or (DB_PATH.exists() and not os.getenv("VERCEL")):
+        return list_jobs_sqlite(
+            limit=limit,
+            offset=offset,
+            sponsorship=sponsorship,
+            country=country,
+            query=query,
+            sort=sort
+        )
+
     db = get_db_client()
     if db:
         try:
-            q = db.table("jobs").select("*").eq("status", "open")
+            cols = (
+                "id,source_id,source_name,external_id,canonical_url,title,company,location,country,"
+                "salary_text,application_url,posted_at,required_skills,sponsorship_status,sponsorship_evidence,"
+                "relocation_support,relocation_evidence,match_score,technical_score,role_score,ai_relevance_score,"
+                "experience_score,sponsorship_score,location_score,recency_score,match_explanation,status,remote_type"
+            )
+            q = db.table("jobs").select(cols).eq("status", "open")
             if sponsorship and sponsorship != "all":
                 q = q.eq("sponsorship_status", sponsorship)
             if country and country != "all":
@@ -140,7 +162,7 @@ def jobs(
                 if query:
                     items = [
                         j for j in items
-                        if query.lower() in f"{j.get('title','')} {j.get('company','')} {j.get('location','')} {j.get('description','')}".lower()
+                        if query.lower() in f"{j.get('title','')} {j.get('company','')} {j.get('location','')} {j.get('external_id','')}".lower()
                     ]
                 return {"items": items, "total": len(items), "configured": True}
         except Exception as exc:
@@ -156,15 +178,21 @@ def jobs(
     )
 
 @app.get("/api/jobs/featured")
-def featured():
-    return jobs(limit=30, offset=0, sort="match")
+def featured(request: Request = None):
+    return jobs(request=request, limit=30, offset=0, sort="match")
 
 @app.get("/api/jobs/sponsorship")
-def sponsorship(status: str | None = None):
-    return jobs(limit=250, offset=0, sponsorship=status)
+def sponsorship(status: str | None = None, request: Request = None):
+    return jobs(request=request, limit=250, offset=0, sponsorship=status)
 
 @app.get("/api/jobs/{job_id}")
-def job_detail(job_id: str):
+def job_detail(job_id: str, request: Request = None):
+    user_id = getattr(request.state, "user_id", "local") if request else "local"
+    if user_id == "local" or (DB_PATH.exists() and not os.getenv("VERCEL")):
+        job = get_job_sqlite(job_id)
+        if job:
+            return job
+
     db = get_db_client()
     if db:
         try:
@@ -183,7 +211,11 @@ def job_detail(job_id: str):
 def _analytics_jobs(use_local: bool = False) -> list[dict]:
     db = get_db_client()
     if not db or use_local:
-        return list_jobs_sqlite(limit=10000, offset=0)["items"]
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT sponsorship_status, match_score, country FROM jobs WHERE status='open'")
+            return [dict(r) for r in cur.fetchall()]
 
     jobs_data = []
     try:
@@ -203,8 +235,12 @@ def _analytics_jobs(use_local: bool = False) -> list[dict]:
             offset += 1000
         return jobs_data
     except Exception as exc:
-        log.warning("Supabase analytics query failed: %s", type(exc).__name__)
-        raise HTTPException(503, "Analytics data is unavailable.") from exc
+        log.warning("Supabase analytics query failed: %s; falling back to local SQLite", type(exc).__name__)
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT sponsorship_status, match_score, country FROM jobs WHERE status='open'")
+            return [dict(r) for r in cur.fetchall()]
 
 @app.post("/api/ai/analyze-job/{job_id}")
 async def analyze_job_with_groq(job_id: str):

@@ -12,3 +12,4 @@ venv/
 *.db
 backend/data/
 supabase.txt
+deploy.txt

@@ -138,6 +138,11 @@ def init_sqlite():
         if "telegram_enabled" in preference_columns:
             conn.execute("UPDATE job_preferences SET discord_enabled = telegram_enabled")
             conn.execute("ALTER TABLE job_preferences DROP COLUMN telegram_enabled")
+
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status_match ON jobs (status, match_score DESC, posted_at DESC);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status_posted ON jobs (status, posted_at DESC);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_sponsorship ON jobs (sponsorship_status);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_country ON jobs (country);")
         conn.commit()
 
 init_sqlite()
@@ -350,7 +355,15 @@ def list_jobs_sqlite(limit=100, offset=0, sponsorship=None, country=None, query=
         total = cur.fetchone()[0]
 
         order_by = "match_score DESC, posted_at DESC" if sort == "match" else "posted_at DESC, match_score DESC"
-        cur.execute(f"SELECT * FROM jobs{where_clause} ORDER BY {order_by} LIMIT ? OFFSET ?", params + [limit, offset])
+        columns = (
+            "id, source_id, source_name, external_id, canonical_url, title, company, "
+            "location, country, salary_text, application_url, posted_at, required_skills, "
+            "sponsorship_status, sponsorship_evidence, relocation_support, relocation_evidence, "
+            "match_score, technical_score, role_score, ai_relevance_score, experience_score, "
+            "sponsorship_score, location_score, recency_score, match_explanation, status, remote_type, "
+            "substr(description, 1, 500) as description"
+        )
+        cur.execute(f"SELECT {columns} FROM jobs{where_clause} ORDER BY {order_by} LIMIT ? OFFSET ?", params + [limit, offset])
 
         items = []
         for r in cur.fetchall():

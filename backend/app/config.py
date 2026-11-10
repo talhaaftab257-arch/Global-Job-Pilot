@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     employer_boards: str = ""
     discord_webhook_url: str = ""
     admin_api_token: str = ""
-    local_auth_bypass: bool = False
+    local_auth_bypass: bool = True
     smtp_email: str = ""
     smtp_password: str = ""
     smtp_host: str = "smtp.gmail.com"

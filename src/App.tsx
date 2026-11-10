@@ -67,19 +67,29 @@ const NAV_ITEMS = [
 ] as const;
 
 // Use Vite's same-origin proxy by default so the API remains reachable when
+// Use Vite's same-origin proxy by default so the API remains reachable when
 // the dashboard is opened through the machine's LAN address.
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
+let cachedToken: string | null = null;
+if (supabase) {
+  supabase.auth.getSession().then(({ data }) => {
+    cachedToken = data.session?.access_token || null;
+  });
+  supabase.auth.onAuthStateChange((_event, currentSession) => {
+    cachedToken = currentSession?.access_token || null;
+  });
+}
+
 async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
-  if (supabase) {
-    const { data } = await supabase.auth.getSession();
-    if (data.session?.access_token) headers.set('Authorization', `Bearer ${data.session.access_token}`);
+  if (cachedToken) {
+    headers.set('Authorization', `Bearer ${cachedToken}`);
   }
   return window.fetch(input, { ...init, headers });
 }
 
-function AuthScreen() {
+function AuthScreen({ onSuccess }: { onSuccess?: () => void }) {
   const [mode, setMode] = useState<'sign_in' | 'sign_up'>('sign_in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -95,23 +105,30 @@ function AuthScreen() {
       ? await supabase.auth.signInWithPassword({ email, password })
       : await supabase.auth.signUp({ email, password });
     setBusy(false);
-    if (result.error) setMessage(result.error.message);
-    else if (mode === 'sign_up' && !result.data.session) setMessage('Check your email to confirm your account, then sign in.');
+    if (result.error) {
+      setMessage(result.error.message);
+    } else if (mode === 'sign_up' && !result.data.session) {
+      setMessage('Check your email to confirm your account, then sign in.');
+    } else if (onSuccess) {
+      onSuccess();
+    }
   };
 
   return (
-    <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#f4f7fc', padding: 20 }}>
-      <form onSubmit={submit} className="card form-card" style={{ width: 'min(420px, 100%)' }}>
-        <h1 style={{ marginTop: 0 }}>{mode === 'sign_in' ? 'Sign in to JobPilot' : 'Create your JobPilot account'}</h1>
+    <div className="card form-card" style={{ width: 'min(420px, 100%)', margin: '0 auto' }}>
+      <h2 style={{ marginTop: 0 }}>{mode === 'sign_in' ? 'Sign in to JobPilot' : 'Create your JobPilot account'}</h2>
+      <form onSubmit={submit}>
         <label>Email<input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <label>Password<input type="password" required minLength={8} autoComplete={mode === 'sign_in' ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} /></label>
-        {message && <p role="status">{message}</p>}
-        <button className="primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'sign_in' ? 'Sign in' : 'Create account'}</button>
-        <button type="button" className="textbtn" onClick={() => { setMode(mode === 'sign_in' ? 'sign_up' : 'sign_in'); setMessage(''); }}>
+        {message && <p role="status" style={{ color: '#ef4444', fontSize: 13, marginTop: 8 }}>{message}</p>}
+        <button className="primary" type="submit" disabled={busy} style={{ width: '100%', marginTop: 12 }}>
+          {busy ? 'Please wait…' : mode === 'sign_in' ? 'Sign in' : 'Create account'}
+        </button>
+        <button type="button" className="textbtn" style={{ width: '100%', marginTop: 8, textAlign: 'center' }} onClick={() => { setMode(mode === 'sign_in' ? 'sign_up' : 'sign_in'); setMessage(''); }}>
           {mode === 'sign_in' ? 'Create an account' : 'I already have an account'}
         </button>
       </form>
-    </main>
+    </div>
   );
 }
 
@@ -125,19 +142,17 @@ export function App() {
   const [running, setRunning] = useState(false);
   const [notice, setNotice] = useState('');
   const [session, setSession] = useState<any>(null);
-  const [authReady, setAuthReady] = useState(!supabase);
+  const [showAuth, setShowAuth] = useState(false);
   const navigate = useNavigate();
-  const authorized = !supabase || Boolean(session);
 
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      setAuthReady(true);
     });
     const { data } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       setSession(currentSession);
-      setAuthReady(true);
+      if (currentSession) setShowAuth(false);
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -149,7 +164,7 @@ export function App() {
 
   const loadJobs = () => {
     setLoading(true);
-    apiFetch(`${API_BASE}/api/jobs?limit=500`)
+    apiFetch(`${API_BASE}/api/jobs?limit=100`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed to load jobs'))))
       .then((data) => {
         setJobs(data.items ?? []);
@@ -157,15 +172,13 @@ export function App() {
         setLoading(false);
       })
       .catch(() => {
-        setError('Could not load jobs. Check your sign-in and API connection, then refresh.');
+        setError('Could not load jobs. Check your connection, then refresh.');
         setLoading(false);
       });
   };
 
   useEffect(() => {
-    if (!authorized) return;
     loadJobs();
-    // Load existing saved application IDs
     apiFetch(`${API_BASE}/api/applications`)
       .then((r) => (r.ok ? r.json() : { items: [] }))
       .then((res) => {
@@ -174,10 +187,7 @@ export function App() {
         }
       })
       .catch(() => {});
-  }, [authorized]);
-
-  if (!authReady) return <div className="empty">Checking your session…</div>;
-  if (supabase && !session) return <AuthScreen />;
+  }, [session]);
 
   const triggerRun = async () => {
     setRunning(true);
@@ -279,17 +289,64 @@ export function App() {
           </button>
         </div>
 
-        <div className="profile" role="button" tabIndex={0} title="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>
-          <div className="avatar">TA</div>
+        <div
+          className="profile"
+          role="button"
+          tabIndex={0}
+          title={session ? 'Click to sign out' : 'Click to sign in'}
+          onClick={() => {
+            if (session) {
+              void supabase?.auth.signOut();
+              flash('Signed out.');
+            } else if (supabase) {
+              setShowAuth(true);
+            }
+          }}
+        >
+          <div className="avatar">{session?.user?.email ? session.user.email.slice(0, 2).toUpperCase() : 'TA'}</div>
           <div>
-            <b>Talha Aftab</b>
-            <small>Lead Data Scientist / AI &bull; PK</small>
+            <b>{session?.user?.email ? session.user.email.split('@')[0] : 'Talha Aftab'}</b>
+            <small>{session ? 'Authenticated' : 'Lead Data Scientist / AI • PK'}</small>
           </div>
           <ChevronDown size={14} />
         </div>
       </aside>
 
       {drawer && <div className="scrim" onClick={() => setDrawer(false)} />}
+      {showAuth && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'grid',
+            placeItems: 'center',
+            zIndex: 1000,
+            padding: 20
+          }}
+          onClick={() => setShowAuth(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(440px, 100%)', position: 'relative' }}>
+            <button
+              onClick={() => setShowAuth(false)}
+              style={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                zIndex: 10,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b'
+              }}
+            >
+              <X size={20} />
+            </button>
+            <AuthScreen onSuccess={() => setShowAuth(false)} />
+          </div>
+        </div>
+      )}
 
       {/* Main Workspace */}
       <main className="main">
@@ -314,6 +371,15 @@ export function App() {
             <Bell size={18} />
             <i />
           </button>
+          {supabase && !session && (
+            <button
+              className="outline"
+              style={{ padding: '6px 14px', fontSize: 13, height: 38 }}
+              onClick={() => setShowAuth(true)}
+            >
+              Sign In
+            </button>
+          )}
           <button className="upgrade" onClick={() => navigate('/preferences')}>
             <ArrowUpRight size={15} /> Preferences
           </button>
