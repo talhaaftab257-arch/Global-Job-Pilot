@@ -11,7 +11,12 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     supabase_secret_key: str = ""
     frontend_url: str = "http://localhost:5173"
-    employer_boards: str = ""
+    employer_boards: str = (
+        "greenhouse:anthropic,greenhouse:stripe,greenhouse:scaleai,greenhouse:gitlab,"
+        "greenhouse:canonical,greenhouse:databricks,greenhouse:cloudflare,greenhouse:figma,"
+        "lever:palantir,lever:spotify,ashby:openai,ashby:elevenlabs,ashby:perplexity,"
+        "ashby:cursor,ashby:linear,ashby:synthesia,ashby:ramp,ashby:writer"
+    )
     discord_webhook_url: str = ""
     admin_api_token: str = ""
     local_auth_bypass: bool = True
