@@ -1,0 +1,14 @@
+backend/
+backend/**
+*.py
+*.db
+.pytest_cache/
+.pytest_cache/**
+__pycache__/
+__pycache__/**
+.venv/
+venv/
+.env
+.env.*
+supabase.txt
+deploy.txt

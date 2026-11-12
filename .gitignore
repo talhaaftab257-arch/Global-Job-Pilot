@@ -13,3 +13,7 @@ venv/
 backend/data/
 supabase.txt
 deploy.txt
+.vercel/
+
+.vercel
+.env*
